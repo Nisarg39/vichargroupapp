@@ -1,0 +1,1 @@
+To build preview app - eas build -p android --profile preview
