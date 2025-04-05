@@ -1,6 +1,6 @@
 import { View, Text, Image, Dimensions, TouchableOpacity, FlatList } from 'react-native'
 import { useState, useRef } from 'react'
-import Animated, { useAnimatedStyle, withSpring, useSharedValue } from 'react-native-reanimated'
+import Animated, { useAnimatedStyle, withSpring, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated'
 import { FontAwesome5 } from '@expo/vector-icons'
 
 const products = {
@@ -9,8 +9,9 @@ const products = {
             {
                 id: 1,
                 name: 'JEE',
-                image: 'https://cdn-icons-png.flaticon.com/256/11483/11483690.png',
+                image: 'https://cdn-icons-png.flaticon.com/256/11483/11483670.png',
                 price: 1000,
+                discount: 20,
                 lessons: '200+',
                 students: '50K+'
             },
@@ -19,6 +20,7 @@ const products = {
                 name: 'NEET',
                 image: 'https://cdn-icons-png.flaticon.com/256/8662/8662421.png',
                 price: 1000,
+                discount: 15,
                 lessons: '180+',
                 students: '45K+'
             },
@@ -27,6 +29,7 @@ const products = {
                 name: 'CET',
                 image: 'https://cdn-icons-png.flaticon.com/256/8663/8663461.png',
                 price: 1000,
+                discount: 25,
                 lessons: '150+',
                 students: '30K+'
             },
@@ -35,6 +38,7 @@ const products = {
                 name: 'FOUNDATION',
                 image: 'https://cdn-icons-png.flaticon.com/256/7139/7139119.png',
                 price: 1000,
+                discount: 10,
                 lessons: '120+',
                 students: '25K+'
             }
@@ -45,6 +49,7 @@ const products = {
                 name: 'Price Action',
                 image: 'https://cdn-icons-png.flaticon.com/256/16835/16835338.png',
                 price: 1500,
+                discount: 30,
                 lessons: '100+',
                 students: '20K+'
             },
@@ -53,6 +58,7 @@ const products = {
                 name: 'RSI & Price Action',
                 image: 'https://cdn-icons-png.flaticon.com/256/5784/5784099.png',
                 price: 2000,
+                discount: 20,
                 lessons: '90+',
                 students: '15K+'
             },
@@ -61,6 +67,7 @@ const products = {
                 name: 'Option Trading',
                 image: 'https://cdn-icons-png.flaticon.com/256/16835/16835338.png',
                 price: 2500,
+                discount: 15,
                 lessons: '80+',
                 students: '10K+'
             }
@@ -72,6 +79,7 @@ const products = {
             name: 'JEE Mock Tests',
             image: 'https://cdn-icons-png.flaticon.com/256/16835/16835338.png',
             price: 500,
+            discount: 10,
             lessons: '50+',
             students: '40K+'
         },
@@ -80,6 +88,7 @@ const products = {
             name: 'NEET Practice Tests',
             image: 'https://cdn-icons-png.flaticon.com/256/5784/5784099.png',
             price: 500,
+            discount: 15,
             lessons: '40+',
             students: '35K+'
         },
@@ -88,6 +97,7 @@ const products = {
             name: 'CET Test Series',
             image: 'https://cdn-icons-png.flaticon.com/256/16835/16835338.png',
             price: 500,
+            discount: 20,
             lessons: '30+',
             students: '25K+'
         }
@@ -99,6 +109,7 @@ interface Product {
     name: string
     image: string
     price: number
+    discount: number
     lessons: string
     students: string
 }
@@ -112,15 +123,33 @@ interface Section {
 export default function CoursesList() {
     const [expandedSection, setExpandedSection] = useState<string>('')
     const screenWidth = Dimensions.get('window').width
-    const cardWidth = (screenWidth - 64) / 2
+    const cardWidth = screenWidth - 32
+    const scaleValue = useSharedValue(1)
+
+    const animatedStyle = useAnimatedStyle(() => {
+        return {
+            transform: [{ scale: scaleValue.value }]
+        }
+    })
 
     const renderItem = ({ item, index }: { item: Product; index: number }) => {
         const cardStyle = cardStyles[index % 4]
         const borderStyle = borderStyles[index % 4]
+        const discountedPrice = item.price - (item.price * item.discount / 100)
+
+        scaleValue.value = withRepeat(
+            withSequence(
+                withTiming(1.1, { duration: 800 }),
+                withTiming(1, { duration: 800 })
+            ),
+            -1,
+            true
+        )
+
         return (
-            <View className="my-2">
+            <View className="my-2 items-center">
                 <TouchableOpacity
-                    className={`rounded-[20px] p-3 ${cardStyle}`}
+                    className={`rounded-[20px] p-4 ${cardStyle}`}
                     style={{
                         width: cardWidth,
                         borderWidth: 3,
@@ -142,45 +171,62 @@ export default function CoursesList() {
                         })
                     }}
                 >
-                    <View className="items-center justify-center mb-3">
-                        <Image source={{ uri: item.image }} className="w-[70px] h-[70px]" resizeMode="contain" />
-                    </View>
-                    <Text numberOfLines={1} className="text-lg font-extrabold text-white mb-3 text-center">{item.name}</Text>
-                    <View className="flex-row justify-between bg-white/10 rounded-lg p-2 mb-3">
-                        <View className="flex-1 items-center">
-                            <Text className="text-xs text-white/80 mb-0.5">Lessons</Text>
-                            <Text className="text-sm text-white font-semibold">{item.lessons}</Text>
+                    <View className="flex-row items-center">
+                        <View className="items-center justify-center">
+                            <View className="bg-white/30 rounded-full p-2" style={{shadowColor: '#000', shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.25, shadowRadius: 3.84, elevation: 5}}>
+                                <Image source={{ uri: item.image }} className="w-[60px] h-[60px]" resizeMode="contain" />
+                            </View>
                         </View>
-                        <View className="flex-1 items-center border-l border-white/20">
-                            <Text className="text-xs text-white/80 mb-0.5">Students</Text>
-                            <Text className="text-sm text-white font-semibold">{item.students}</Text>
+                        <View className="flex-1 ml-4">
+                            <Text numberOfLines={1} className="text-base font-extrabold text-white">{item.name}</Text>
+                            
+                            <View className="flex-row justify-between bg-white/10 rounded-lg p-2 mt-2">
+                                <View className="flex-1 items-center">
+                                    <Text className="text-[10px] text-white/80">Lessons</Text>
+                                    <Text className="text-xs text-white font-semibold">{item.lessons}</Text>
+                                </View>
+                                <View className="flex-1 items-center border-l border-white/20">
+                                    <Text className="text-[10px] text-white/80">Students</Text>
+                                    <Text className="text-xs text-white font-semibold">{item.students}</Text>
+                                </View>
+                            </View>
+                        </View>
+                        
+                        <View className="ml-4 items-end">
+                            <View className="flex-row items-center justify-between">
+                                <Text className="text-xs text-white/60 line-through mr-2">₹{item.price}</Text>
+                                <Animated.View style={animatedStyle} className="bg-white/20 rounded-lg px-1.5 py-0.5">
+                                    <Text className="text-xs text-white font-bold">{item.discount}% OFF</Text>
+                                </Animated.View>
+                            </View>
+                            <Text className="text-xl font-bold text-white mt-1">₹{discountedPrice}</Text>
+                            
+                            <TouchableOpacity 
+                                className="bg-white rounded-xl mt-2"
+                                style={{
+                                    borderWidth: 2,
+                                    borderColor: borderStyle,
+                                    borderBottomWidth: 4,
+                                    borderRightWidth: 4,
+                                    transform: [{ translateY: 0 }],
+                                }}
+                                activeOpacity={1}
+                                pressRetentionOffset={{top: 5, left: 5, right: 5, bottom: 5}}
+                                onPressIn={(e) => {
+                                    e.currentTarget.setNativeProps({
+                                        style: { transform: [{ translateY: 2 }], borderBottomWidth: 2, borderRightWidth: 2 }
+                                    })
+                                }}
+                                onPressOut={(e) => {
+                                    e.currentTarget.setNativeProps({
+                                        style: { transform: [{ translateY: 0 }], borderBottomWidth: 4, borderRightWidth: 4 }
+                                    })
+                                }}
+                            >
+                                <Text className="text-black font-bold text-xs px-4 py-2 text-center">Enroll Now</Text>
+                            </TouchableOpacity>
                         </View>
                     </View>
-                    <Text className="text-lg font-bold text-white mb-3">₹{item.price}</Text>
-                    <TouchableOpacity 
-                        className="bg-white rounded-2xl w-full"
-                        style={{
-                            borderWidth: 2,
-                            borderColor: borderStyle,
-                            borderBottomWidth: 4,
-                            borderRightWidth: 4,
-                            transform: [{ translateY: 0 }],
-                        }}
-                        activeOpacity={1}
-                        pressRetentionOffset={{top: 5, left: 5, right: 5, bottom: 5}}
-                        onPressIn={(e) => {
-                            e.currentTarget.setNativeProps({
-                                style: { transform: [{ translateY: 2 }], borderBottomWidth: 2, borderRightWidth: 2 }
-                            })
-                        }}
-                        onPressOut={(e) => {
-                            e.currentTarget.setNativeProps({
-                                style: { transform: [{ translateY: 0 }], borderBottomWidth: 4, borderRightWidth: 4 }
-                            })
-                        }}
-                    >
-                        <Text className="text-black font-bold text-xs px-3 py-1.5 text-center">Enroll Now</Text>
-                    </TouchableOpacity>
                 </TouchableOpacity>
             </View>
         )
@@ -204,17 +250,17 @@ export default function CoursesList() {
         { 
             title: 'Academic Courses', 
             data: products.courses.academic,
-            icon: 'https://cdn-icons-png.flaticon.com/256/3152/3152771.png'
+            icon: 'https://cdn-icons-png.flaticon.com/256/12583/12583400.png'
         },
         { 
             title: 'Stock Market Courses', 
             data: products.courses.stockMarket,
-            icon: 'https://cdn-icons-png.flaticon.com/256/4222/4222019.png'
+            icon: 'https://cdn-icons-png.flaticon.com/256/11752/11752764.png'
         },
         { 
             title: 'Test Series', 
             data: products.testSeries,
-            icon: 'https://cdn-icons-png.flaticon.com/256/3024/3024593.png'
+            icon: 'https://cdn-icons-png.flaticon.com/256/8021/8021882.png'
         }
     ]
 
@@ -225,17 +271,13 @@ export default function CoursesList() {
                 <View className="mb-5">
                     <TouchableOpacity
                         onPress={() => setExpandedSection(expandedSection === section.title ? '' : section.title)}
-                        className="flex-row items-center justify-between bg-cardinal-500 rounded-2xl p-4"
-                        style={{
-                            borderWidth: 1,
-                            borderColor: '#FF1818'
-                        }}
+                        className="flex-row items-center justify-between bg-cardinal-500 rounded-2xl p-4 mx-4"
                         activeOpacity={1}
                     >
                         <View className="flex-row items-center">
                             <Image 
                                 source={{ uri: section.icon }} 
-                                className="w-7 h-7 mr-3 tint-white"
+                                className="w-10 h-10 mr-3"
                             />
                             <Text className="text-lg font-bold text-white tracking-wider">{section.title}</Text>
                         </View>
@@ -246,15 +288,13 @@ export default function CoursesList() {
                             data={section.data}
                             renderItem={renderItem}
                             keyExtractor={(item: Product) => item.id.toString()}
-                            numColumns={2}
-                            contentContainerStyle={{ paddingTop: 16, paddingHorizontal: 8 }}
-                            columnWrapperStyle={{ justifyContent: 'space-between', paddingHorizontal: 8, gap: 16 }}
+                            contentContainerStyle={{ paddingTop: 16 }}
                         />
                     )}
                 </View>
             )}
             keyExtractor={(section) => section.title}
-            contentContainerStyle={{ padding: 16 }}
+            contentContainerStyle={{ paddingVertical: 16 }}
             showsVerticalScrollIndicator={false}
         />
     )

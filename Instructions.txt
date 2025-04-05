@@ -1,1 +1,2 @@
-To build preview app - eas build -p android --profile preview
+To build preview app on eas - eas build -p android --profile preview
+build android app offline - eas build --platform android --local

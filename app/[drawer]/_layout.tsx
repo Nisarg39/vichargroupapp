@@ -34,26 +34,15 @@ const CustomDrawerContent: React.FC<CustomDrawerContentProps> = (props) => {
                 <TouchableOpacity
                     className='flex-row justify-between items-center p-3 bg-white rounded-2xl mx-2 my-2'
                     style={{
-                        borderWidth: 3,
-                        borderColor: '#1CB0F6',
-                        borderBottomWidth: 6,
-                        borderRightWidth: 6,
-                        transform: [{ translateY: 0 }],
-                        backgroundColor: props.state.index === 0 ? '#1CB0F6' : '#FFFFFF'
+                        backgroundColor: props.state.index === 0 ? '#1CB0F6' : '#FFFFFF',
+                        elevation: 2,
+                        shadowColor: '#000',
+                        shadowOffset: { width: 0, height: 2 },
+                        shadowOpacity: 0.25,
+                        shadowRadius: 3.84,
                     }}
-                    activeOpacity={1}
-                    pressRetentionOffset={{top: 10, left: 10, right: 10, bottom: 10}}
+                    activeOpacity={0.7}
                     onPress={() => props.navigation.navigate('[tabs]')}
-                    onPressIn={(e) => {
-                        e.currentTarget.setNativeProps({
-                            style: { transform: [{ translateY: 4 }], borderBottomWidth: 3, borderRightWidth: 3, backgroundColor: '#1CB0F6' }
-                        })
-                    }}
-                    onPressOut={(e) => {
-                        e.currentTarget.setNativeProps({
-                            style: { transform: [{ translateY: 0 }], borderBottomWidth: 6, borderRightWidth: 6, backgroundColor: props.state.index === 0 ? '#1CB0F6' : '#FFFFFF' }
-                        })
-                    }}
                 >
                     <View className='flex-row items-center'>
                         <Image source={{ uri: 'https://cdn-icons-png.flaticon.com/256/7648/7648203.png' }} className="w-[35px] h-[35px] mr-3" />
@@ -65,26 +54,15 @@ const CustomDrawerContent: React.FC<CustomDrawerContentProps> = (props) => {
                 <TouchableOpacity
                     className='flex-row justify-between items-center p-3 bg-white rounded-2xl mx-2 my-2'
                     style={{
-                        borderWidth: 3,
-                        borderColor: '#2B70C9',
-                        borderBottomWidth: 6,
-                        borderRightWidth: 6,
-                        transform: [{ translateY: 0 }],
-                        backgroundColor: props.state.index === 1 ? '#2B70C9' : '#FFFFFF'
+                        backgroundColor: props.state.index === 1 ? '#2B70C9' : '#FFFFFF',
+                        elevation: 2,
+                        shadowColor: '#000',
+                        shadowOffset: { width: 0, height: 2 },
+                        shadowOpacity: 0.25,
+                        shadowRadius: 3.84,
                     }}
-                    activeOpacity={1}
-                    pressRetentionOffset={{top: 10, left: 10, right: 10, bottom: 10}}
+                    activeOpacity={0.7}
                     onPress={() => props.navigation.navigate('profile')}
-                    onPressIn={(e) => {
-                        e.currentTarget.setNativeProps({
-                            style: { transform: [{ translateY: 4 }], borderBottomWidth: 3, borderRightWidth: 3, backgroundColor: '#2B70C9' }
-                        })
-                    }}
-                    onPressOut={(e) => {
-                        e.currentTarget.setNativeProps({
-                            style: { transform: [{ translateY: 0 }], borderBottomWidth: 6, borderRightWidth: 6, backgroundColor: props.state.index === 1 ? '#2B70C9' : '#FFFFFF' }
-                        })
-                    }}
                 >
                     <View className='flex-row items-center'>
                         <Image source={{ uri: 'https://cdn-icons-png.flaticon.com/256/7139/7139111.png' }} className="w-[35px] h-[35px] mr-3" />
@@ -96,25 +74,14 @@ const CustomDrawerContent: React.FC<CustomDrawerContentProps> = (props) => {
                 <TouchableOpacity
                     className='flex-row justify-between items-center p-3 bg-white rounded-2xl mx-2 my-2'
                     style={{
-                        borderWidth: 3,
-                        borderColor: '#ef4444',
-                        borderBottomWidth: 6,
-                        borderRightWidth: 6,
-                        transform: [{ translateY: 0 }],
+                        elevation: 2,
+                        shadowColor: '#000',
+                        shadowOffset: { width: 0, height: 2 },
+                        shadowOpacity: 0.25,
+                        shadowRadius: 3.84,
                     }}
-                    activeOpacity={1}
-                    pressRetentionOffset={{top: 10, left: 10, right: 10, bottom: 10}}
+                    activeOpacity={0.7}
                     onPress={handleSignOut}
-                    onPressIn={(e) => {
-                        e.currentTarget.setNativeProps({
-                            style: { transform: [{ translateY: 4 }], borderBottomWidth: 3, borderRightWidth: 3, backgroundColor: '#ef4444' }
-                        })
-                    }}
-                    onPressOut={(e) => {
-                        e.currentTarget.setNativeProps({
-                            style: { transform: [{ translateY: 0 }], borderBottomWidth: 6, borderRightWidth: 6, backgroundColor: '#FFFFFF' }
-                        })
-                    }}
                 >
                     <View className='flex-row items-center'>
                         <Image source={{ uri: 'https://cdn-icons-png.flaticon.com/256/14571/14571433.png' }} className="w-[35px] h-[35px] mr-3" />
@@ -165,8 +132,8 @@ export default function Layout() {
                             onPressOut={handlePressOut}
                         >
                             <Animated.Image 
-                                source={{ uri: 'https://cdn-icons-png.flaticon.com/128/12461/12461279.png' }}
-                                className="w-[30px] h-[35px] ml-2.5"
+                                source={{ uri: 'https://cdn-icons-png.flaticon.com/128/151/151917.png' }}
+                                className="w-[25px] h-[25px] ml-4"
                                 style={{ transform: [{ scale: scaleAnim }] }}
                             />
                         </TouchableOpacity>

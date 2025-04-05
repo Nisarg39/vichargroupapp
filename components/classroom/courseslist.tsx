@@ -19,7 +19,7 @@ const products = {
             {
                 id: 1,
                 name: 'JEE',
-                image: 'https://cdn-icons-png.flaticon.com/256/11483/11483690.png',
+                image: 'https://cdn-icons-png.flaticon.com/256/11483/11483670.png',
                 price: 1000,
                 rating: 4.5,
                 reviews: 10,
