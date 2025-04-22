@@ -10,7 +10,7 @@ const products = {
                 id: 1,
                 name: 'JEE',
                 image: 'https://cdn-icons-png.flaticon.com/256/11483/11483670.png',
-                price: 1000,
+                price: 23000,
                 discount: 20,
                 lessons: '200+',
                 students: '50K+'
@@ -19,7 +19,7 @@ const products = {
                 id: 2,
                 name: 'NEET',
                 image: 'https://cdn-icons-png.flaticon.com/256/8662/8662421.png',
-                price: 1000,
+                price: 23000,
                 discount: 15,
                 lessons: '180+',
                 students: '45K+'
@@ -28,7 +28,7 @@ const products = {
                 id: 3,
                 name: 'CET',
                 image: 'https://cdn-icons-png.flaticon.com/256/8663/8663461.png',
-                price: 1000,
+                price: 23000,
                 discount: 25,
                 lessons: '150+',
                 students: '30K+'
@@ -37,7 +37,7 @@ const products = {
                 id: 4,
                 name: 'FOUNDATION',
                 image: 'https://cdn-icons-png.flaticon.com/256/7139/7139119.png',
-                price: 1000,
+                price: 23000,
                 discount: 10,
                 lessons: '120+',
                 students: '25K+'
@@ -48,7 +48,7 @@ const products = {
                 id: 8,
                 name: 'Price Action',
                 image: 'https://cdn-icons-png.flaticon.com/256/16835/16835338.png',
-                price: 1500,
+                price: 40000,
                 discount: 30,
                 lessons: '100+',
                 students: '20K+'
@@ -57,7 +57,7 @@ const products = {
                 id: 9,
                 name: 'RSI & Price Action',
                 image: 'https://cdn-icons-png.flaticon.com/256/5784/5784099.png',
-                price: 2000,
+                price: 40000,
                 discount: 20,
                 lessons: '90+',
                 students: '15K+'
@@ -66,7 +66,7 @@ const products = {
                 id: 10,
                 name: 'Option Trading',
                 image: 'https://cdn-icons-png.flaticon.com/256/16835/16835338.png',
-                price: 2500,
+                price: 40000,
                 discount: 15,
                 lessons: '80+',
                 students: '10K+'
@@ -78,7 +78,7 @@ const products = {
             id: 5,
             name: 'JEE Mock Tests',
             image: 'https://cdn-icons-png.flaticon.com/256/16835/16835338.png',
-            price: 500,
+            price: 5000,
             discount: 10,
             lessons: '50+',
             students: '40K+'
@@ -87,7 +87,7 @@ const products = {
             id: 6,
             name: 'NEET Practice Tests',
             image: 'https://cdn-icons-png.flaticon.com/256/5784/5784099.png',
-            price: 500,
+            price: 5000,
             discount: 15,
             lessons: '40+',
             students: '35K+'
@@ -96,7 +96,7 @@ const products = {
             id: 7,
             name: 'CET Test Series',
             image: 'https://cdn-icons-png.flaticon.com/256/16835/16835338.png',
-            price: 500,
+            price: 5000,
             discount: 20,
             lessons: '30+',
             students: '25K+'
