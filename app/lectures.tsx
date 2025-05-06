@@ -6,7 +6,7 @@ import Exercises from "@/components/classroom/lecture/exercises";
 import axios from "axios";
 import { useEffect, useRef, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -15,6 +15,9 @@ export default function Lectures() {
   const offerAnimation = useRef(new Animated.Value(1)).current;
   const router = useRouter();
   const [lectures, setLectures] = useState([]);
+    const [dpps, setDpps] = useState([]);
+    const [exercises, setExercises] = useState([]);
+  const [activeTab, setActiveTab] = useState('lectures');
 
   useEffect(() => {
     const pulseOffer = () => {
@@ -54,8 +57,9 @@ export default function Lectures() {
           }
         );
         if (response.data.success == true) {
-            console.log(response.data.chapter.lectures[0]._id);
           setLectures(response.data.chapter.lectures);
+            setDpps(response.data.chapter.dpps);
+            setExercises(response.data.chapter.exercises);
         } else {
           console.log("Error fetching chapter details");
         }
@@ -100,6 +104,29 @@ export default function Lectures() {
           </View>
         </View>
       </View>
+      <View className="flex-row justify-around p-3 bg-white shadow-sm">
+        <TouchableOpacity 
+          onPress={() => setActiveTab('lectures')}
+          className={`px-6 py-2 rounded-full flex-row items-center space-x-2 ${activeTab === 'lectures' ? 'bg-humpback-500' : 'bg-gray-100'}`}
+        >
+          <MaterialIcons name="video-library" size={18} color={activeTab === 'lectures' ? 'white' : '#4A5568'} />
+          <Text className={`${activeTab === 'lectures' ? 'text-white font-medium' : 'text-gray-700'}`}>Lectures</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          onPress={() => setActiveTab('dpps')}
+          className={`px-6 py-2 rounded-full flex-row items-center space-x-2 ${activeTab === 'dpps' ? 'bg-humpback-500' : 'bg-gray-100'}`}
+        >
+          <FontAwesome5 name="tasks" size={16} color={activeTab === 'dpps' ? 'white' : '#4A5568'} />
+          <Text className={`${activeTab === 'dpps' ? 'text-white font-medium' : 'text-gray-700'}`}>DPPs</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          onPress={() => setActiveTab('exercises')}
+          className={`px-6 py-2 rounded-full flex-row items-center space-x-2 ${activeTab === 'exercises' ? 'bg-humpback-500' : 'bg-gray-100'}`}
+        >
+          <MaterialIcons name="fitness-center" size={18} color={activeTab === 'exercises' ? 'white' : '#4A5568'} />
+          <Text className={`${activeTab === 'exercises' ? 'text-white font-medium' : 'text-gray-700'}`}>Exercises</Text>
+        </TouchableOpacity>
+      </View>
       <ScrollView
         className='flex-1'
         contentContainerStyle={{
@@ -109,6 +136,9 @@ export default function Lectures() {
         }}
       >
         <View className="flex-1">
+          {activeTab === 'lectures' && <VideoLecture lectures={lectures} />}
+          {activeTab === 'dpps' && <DPPs dpps={dpps}/>}
+          {activeTab === 'exercises' && <Exercises exercises={exercises}/>}
         </View>
       </ScrollView>
     </RNSafeAreaView>

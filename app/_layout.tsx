@@ -135,6 +135,7 @@ function RootLayoutContent({ isSignedIn, setIsSignedIn, isLoading, setIsLoading,
         <Stack.Screen name="signin" options={{ headerShown: false }} />
         <Stack.Screen name="subjects" options={{ headerShown: false }} />
         <Stack.Screen name="lectures" options={{ headerShown: false }} />
+        <Stack.Screen name='videoplayer' options={{ headerShown: false }} />
         <Stack.Screen
           name="notifications"
           options={{
