@@ -5,6 +5,8 @@ import { useRouter } from 'expo-router';
 import { DrawerContentScrollView } from '@react-navigation/drawer';
 import { AuthContext } from '../_layout';
 import { useContext } from 'react';
+import { StudentContext } from '../context/StudentContext';
+import { StudentData } from '../../src/types/interfaces';
 import { FontAwesome5 } from '@expo/vector-icons';
 
 interface CustomDrawerContentProps {
@@ -15,6 +17,9 @@ interface CustomDrawerContentProps {
 const CustomDrawerContent: React.FC<CustomDrawerContentProps> = (props) => {
     const router = useRouter();
     const { setIsSignedIn } = useContext(AuthContext);
+    const { studentData, setStudentData } = useContext<{studentData: StudentData | null, setStudentData: any}>(StudentContext)
+
+    // console.log(studentData?.name)
 
     const handleSignOut = () => {
         setIsSignedIn(false);
@@ -27,8 +32,8 @@ const CustomDrawerContent: React.FC<CustomDrawerContentProps> = (props) => {
                     source={{ uri: 'https://cdn-icons-png.flaticon.com/256/8662/8662228.png' }}
                     className="w-[90px] h-[90px] rounded-full border-4 border-[#FF9600] mb-3 shadow-lg"
                 />
-                <Text className="text-2xl font-bold text-gray-800 mb-1 shadow-sm">Student Name</Text>
-                <Text className="text-sm text-gray-700 bg-gray-100 py-1 px-3 rounded-full shadow">student@email.com</Text>
+                <Text className="text-2xl font-bold text-gray-800 mb-1 shadow-sm">{studentData?.name}</Text>
+                <Text className="text-sm text-gray-700 bg-gray-100 py-1 px-3 rounded-full shadow">{studentData?.email}</Text>
             </View>
             <View className="mt-2">
                 <TouchableOpacity
@@ -93,7 +98,6 @@ const CustomDrawerContent: React.FC<CustomDrawerContentProps> = (props) => {
         </DrawerContentScrollView>
     );
 };
-
 export default function Layout() {
     const router = useRouter();
     const scaleAnim = new Animated.Value(1);

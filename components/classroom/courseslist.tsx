@@ -1,134 +1,20 @@
 import {View, Text, TouchableOpacity, Dimensions, ScrollView, Image } from 'react-native'
-import { useRef } from 'react'
+import {useContext, useEffect, useState} from 'react'
+import { StudentContext } from '../../app/context/StudentContext'
+import { useRouter } from 'expo-router'
 
 interface Course {
     id: number;
     name: string;
     image: string;
     price: number;
-    rating: number;
     reviews: number;
-    lessons: string;
     students: string;
     progress?: number;
-}
-
-const products = {
-    courses: {
-        academic: [
-            {
-                id: 1,
-                name: 'JEE',
-                image: 'https://cdn-icons-png.flaticon.com/256/11483/11483670.png',
-                price: 1000,
-                rating: 4.5,
-                reviews: 10,
-                lessons: '200+',
-                students: '50K+',
-                progress: 65
-            },
-            {
-                id: 2,
-                name: 'NEET',
-                image: 'https://cdn-icons-png.flaticon.com/256/8662/8662421.png',
-                price: 1000,
-                rating: 4.5,
-                reviews: 10,
-                lessons: '180+',
-                students: '45K+',
-                progress: 45
-            },
-            {
-                id: 3,
-                name: 'CET',
-                image: 'https://cdn-icons-png.flaticon.com/256/8663/8663461.png',
-                price: 1000,
-                rating: 4.5,
-                reviews: 10,
-                lessons: '150+',
-                students: '30K+',
-                progress: 30
-            },
-            {
-                id: 4,
-                name: 'FOUNDATION',
-                image: 'https://cdn-icons-png.flaticon.com/256/7139/7139119.png',
-                price: 1000,
-                rating: 4.5,
-                reviews: 10,
-                lessons: '120+',
-                students: '25K+',
-                progress: 20
-            }
-        ],
-        stockMarket: [
-            {
-                id: 8,
-                name: 'Price Action',
-                image: 'https://cdn-icons-png.flaticon.com/256/16835/16835338.png',
-                price: 1500,
-                rating: 4.7,
-                reviews: 25,
-                lessons: '100+',
-                students: '20K+',
-                progress: 80
-            },
-            {
-                id: 9,
-                name: 'RSI & Price Action',
-                image: 'https://cdn-icons-png.flaticon.com/256/5784/5784099.png',
-                price: 2000,
-                rating: 4.8,
-                reviews: 18,
-                lessons: '90+',
-                students: '15K+',
-                progress: 55
-            },
-            {
-                id: 10,
-                name: 'Option Trading',
-                image: 'https://cdn-icons-png.flaticon.com/256/16835/16835338.png',
-                price: 2500,
-                rating: 4.9,
-                reviews: 30,
-                lessons: '80+',
-                students: '10K+',
-                progress: 35
-            }
-        ]
-    },
-    testSeries: [
-        {
-            id: 5,
-            name: 'JEE Mock Tests',
-            image: 'https://cdn-icons-png.flaticon.com/256/16835/16835338.png',
-            price: 500,
-            rating: 4.8,
-            reviews: 15,
-            lessons: '50+',
-            students: '40K+'
-        },
-        {
-            id: 6,
-            name: 'NEET Practice Tests',
-            image: 'https://cdn-icons-png.flaticon.com/256/5784/5784099.png',
-            price: 500,
-            rating: 4.7,
-            reviews: 12,
-            lessons: '40+',
-            students: '35K+'
-        },
-        {
-            id: 7,
-            name: 'CET Test Series',
-            image: 'https://cdn-icons-png.flaticon.com/256/16835/16835338.png',
-            price: 500,
-            rating: 4.6,
-            reviews: 8,
-            lessons: '30+',
-            students: '25K+'
-        }
-    ]
+    productId: string;
+    subjectsCount: number;
+    chaptersCount: number;
+    subjects?: any[];
 }
 
 const cardStyles = [
@@ -145,11 +31,67 @@ const borderStyles = [
     '#2259A1'
 ]
 
+const DEFAULT_IMAGE = 'https://cdn-icons-png.flaticon.com/256/11483/11483670.png';
+
 export default function CoursesList() {
-    const courses: Course[] = [
-        ...products.courses.academic,
-        ...products.courses.stockMarket
-    ];
+    const [courses, setCourses] = useState<Course[]>([]);
+    const [loading, setLoading] = useState(true);
+    const { studentData } = useContext(StudentContext);
+    const router = useRouter();
+
+    // console.log(studentData?.purchases[1]?.product?.subjects);
+    useEffect(() => {
+        if (studentData && studentData.purchases) {
+            const purchasedCourses = studentData.purchases
+                .filter(purchase => purchase.product.type === 'course')
+                .map((purchase) => {
+                    const product = purchase.product;
+                    const subjectsCount = product.subjects?.length || 0;
+                    const chaptersCount = product.subjects?.reduce((total: number, subject: any) => 
+                        total + (subject.chapters?.length || 0), 0) || 0;
+                    
+                    return {
+                        id: typeof product._id === 'string' ? parseInt(product._id.replace(/\D/g, '')) : (product._id || Math.random()),
+                        name: product.name || 'Unnamed Course',
+                        image: product.image || DEFAULT_IMAGE,
+                        price: product.price || 0,
+                        reviews: product.reviews || 0,
+                        students: product.students || '1K+',
+                        progress: purchase.progress || 0,
+                        productId: product._id,
+                        subjectsCount,
+                        chaptersCount,
+                        subjects: product.subjects || []
+                    };
+                });
+            
+            setCourses(purchasedCourses);
+            setLoading(false);
+        } else {
+            setLoading(false);
+        }
+    }, [studentData]);
+
+    const handleContinueLearning = (course: Course) => {
+        if (course.subjects) {
+            router.push({
+                pathname: "/subjects",
+                params: { 
+                    subjects: JSON.stringify(course.subjects)
+                }
+            });
+        } else {
+            console.log("Subjects not available");
+        }
+    };
+
+    if (loading) {
+        return (
+            <View className='flex-1 items-center justify-center'>
+                <Text className='text-xl font-bold'>Loading your courses...</Text>
+            </View>
+        );
+    }
 
     if (courses.length === 0) {
         return (
@@ -198,8 +140,9 @@ export default function CoursesList() {
             {courses.map((course, index) => {
                 const cardStyle = cardStyles[index % 4];
                 const borderStyle = borderStyles[index % 4];
+                
                 return (
-                    <View key={course.id} className='w-full mb-4'>
+                    <View key={`course-${course.id}-${index}`} className='w-full mb-4'>
                         <TouchableOpacity 
                             className={`${cardStyle} rounded-3xl p-4`}
                             style={{
@@ -232,6 +175,7 @@ export default function CoursesList() {
                                 </View>
                                 <View className='flex-1'>
                                     <Text className='text-white text-xl font-bold mb-2'>{course.name}</Text>
+                                    <Text className='text-white/80 text-sm mb-2'>{course.subjectsCount} Subjects • {course.chaptersCount} Chapters</Text>
                                     {course.progress !== undefined && (
                                         <View className='h-5 bg-white/10 rounded-lg overflow-hidden relative'>
                                             <View className={`h-full bg-white/30 rounded-lg`} style={{width: `${course.progress}%`}} />
@@ -240,17 +184,6 @@ export default function CoursesList() {
                                             </View>
                                         </View>
                                     )}
-                                </View>
-                            </View>
-                            <View className='flex-row rounded-2xl p-3 bg-white/10 mb-3'>
-                                <View className='items-center flex-1'>
-                                    <Text className='text-white/80 text-xs mb-1'>Lessons</Text>
-                                    <Text className='text-white font-extrabold text-base'>{course.lessons}</Text>
-                                </View>
-                                <View className='w-[3px] mx-3 bg-white/20' />
-                                <View className='items-center flex-1'>
-                                    <Text className='text-white/80 text-xs mb-1'>Students</Text>
-                                    <Text className='text-white font-extrabold text-base'>{course.students}</Text>
                                 </View>
                             </View>
                             <TouchableOpacity 
@@ -274,6 +207,7 @@ export default function CoursesList() {
                                         style: { transform: [{ translateY: 0 }], borderBottomWidth: 6, borderRightWidth: 6 }
                                     })
                                 }}
+                                onPress={() => handleContinueLearning(course)}
                             >
                                 <Text className='text-black font-extrabold text-base tracking-wider'>Continue Learning</Text>
                             </TouchableOpacity>

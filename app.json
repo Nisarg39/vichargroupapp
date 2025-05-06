@@ -38,9 +38,13 @@
       [
         "expo-font",
         {
-          "fonts": ["./assets/fonts/BADABB.ttf", "./assets/fonts/Tektur-Bold.ttf"]
+          "fonts": [
+            "./assets/fonts/BADABB.ttf",
+            "./assets/fonts/Tektur-Bold.ttf"
+          ]
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true

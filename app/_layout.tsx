@@ -1,10 +1,13 @@
 import './globals.css';
 import { Stack, useRouter } from "expo-router";
-import { createContext, useState, useEffect, useCallback } from "react";
+import { createContext, useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { ActivityIndicator, View, StyleSheet } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 import { useFonts } from "expo-font";
-
+import axios from 'axios';
+import { StudentContext, StudentProvider } from './context/StudentContext';
+import { useContext } from 'react';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 // Create an auth context to share the state and setter
 export const AuthContext = createContext({
@@ -15,12 +18,38 @@ export const AuthContext = createContext({
 export default function RootLayout() {
   const router = useRouter();
   const [isSignedIn, setIsSignedIn] = useState(false);
-  const [isLoading, setIsLoading] = useState(true); // Add loading state
+  const [isLoading, setIsLoading] = useState(true);
 
   const [loaded, error] = useFonts({
     'BADABB': require('../assets/fonts/BADABB.ttf'),
     'Tektur': require('../assets/fonts/Tektur-Bold.ttf'),
   });
+
+  // Wrap the component content with StudentProvider
+  return (
+    <SafeAreaProvider>
+      <StudentProvider>
+        <RootLayoutContent 
+          isSignedIn={isSignedIn} 
+          setIsSignedIn={setIsSignedIn} 
+          isLoading={isLoading}
+          setIsLoading={setIsLoading}
+          loaded={loaded}
+        />
+      </StudentProvider>
+    </SafeAreaProvider>
+  );
+}
+
+function RootLayoutContent({ isSignedIn, setIsSignedIn, isLoading, setIsLoading, loaded }: { 
+  isSignedIn: boolean;
+  setIsSignedIn: (value: boolean) => void;
+  isLoading: boolean;
+  setIsLoading: (value: boolean) => void;
+  loaded: boolean;
+}) {
+  const router = useRouter();
+  const { setStudentData } = useContext(StudentContext);
 
   useEffect(() => {
     // Check stored auth state on mount
@@ -31,7 +60,7 @@ export default function RootLayout() {
       } catch (error) {
         console.error("Error reading auth state:", error);
       } finally {
-        setIsLoading(false); // Set loading to false when done
+        setIsLoading(false);
       }
     };
 
@@ -40,9 +69,7 @@ export default function RootLayout() {
     }
   }, []);
 
-  // Use useEffect to redirect based on auth state and store it
   useEffect(() => {
-    // Only redirect if we're not in loading state
     if (!isLoading) {
       const storeAuthState = async () => {
         try {
@@ -54,13 +81,40 @@ export default function RootLayout() {
       storeAuthState();
 
       if (isSignedIn) {
+        getStudentData();
         router.replace("/[drawer]/[tabs]/home");
       } else {
         router.replace("/signin");
       }
     }
   }, [isSignedIn, router, isLoading]);
-  // Show loading spinner while checking auth state
+
+  async function getStudentData(){
+    try {
+      const token = await AsyncStorage.getItem("token");
+
+      const response = await axios.post(`${process.env.EXPO_PUBLIC_API_URL}/api/app/signin/getStudentDetails`,{
+        token: token
+      },{
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          'Accept': 'application/json',
+        }
+      });
+
+      if(response.data.success == true){
+        setStudentData(response.data.student);
+      }else{
+        setStudentData(null);
+        setIsSignedIn(false);
+        await AsyncStorage.removeItem("token");
+        await AsyncStorage.removeItem("isSignedIn");
+        router.replace("/signin");
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
   if (isLoading) {
     return (
       <View>
@@ -79,6 +133,8 @@ export default function RootLayout() {
       <Stack initialRouteName={isSignedIn ? "[drawer]" : "signin"}>
         <Stack.Screen name="[drawer]" options={{ headerShown: false }} />
         <Stack.Screen name="signin" options={{ headerShown: false }} />
+        <Stack.Screen name="subjects" options={{ headerShown: false }} />
+        <Stack.Screen name="lectures" options={{ headerShown: false }} />
         <Stack.Screen
           name="notifications"
           options={{
@@ -90,4 +146,3 @@ export default function RootLayout() {
     </AuthContext.Provider>
   );
 }
-

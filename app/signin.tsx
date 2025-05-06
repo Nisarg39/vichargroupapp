@@ -1,8 +1,11 @@
 import { View, Text, Button, TextInput, Alert, TouchableOpacity, useWindowDimensions, Image } from "react-native"
-import { useContext, useState } from "react"
+import { useContext, useState, } from "react"
 import { AuthContext } from "./_layout"
 import { useRouter } from "expo-router"
 import LottieView from 'lottie-react-native';
+import { Link } from "expo-router";
+import axios from "axios"
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const CustomButton = ({ onPress, disabled = false, text, bgColor, borderColor, children }: {
     onPress: () => void
@@ -83,16 +86,6 @@ const Logo = ({ width }: { width: number }) => (
             }}
             resizeMode="contain"
         />
-        {/* <LottieView
-            source={require('../assets/lottieanimations/Animation - 1742849080910.json')}
-            autoPlay
-            loop
-            style={{
-                width: width > 768 ? 300 : 200,
-                height: width > 768 ? 300 : 200,
-                marginBottom: 20
-            }}
-        /> */}
     </View>
 )
 
@@ -105,33 +98,114 @@ export default function SignInScreen() {
     const [otp, setOTP] = useState('')
     const [verificationStatus, setVerificationStatus] = useState<'idle' | 'success' | 'failure'>('idle')
     const [statusMessage, setStatusMessage] = useState('')
+    const [isSendingOTP, setIsSendingOTP] = useState(false)
+    const [isVerifyingOTP, setIsVerifyingOTP] = useState(false)
+    const [showMandatoryDetails, setShowMandatoryDetails] = useState(false)
+    const [name, setName] = useState('')
+    const [email, setEmail] = useState('')
+    const [isSaving, setIsSaving] = useState(false)
+
+    const isValidEmail = (email: string) => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    }
+
+    const isFormValid = name.trim() !== '' && isValidEmail(email);
 
     const handleSignIn = () => {
         setIsSignedIn(true);
     }
 
-    const handleSendOTP = () => {
+    const handleSendOTP = async() => {
         if (mobileNumber.length === 10) {
-            setShowOTP(true)
-            console.log('Sending OTP to', mobileNumber)
-            setVerificationStatus('idle')
-            setStatusMessage('OTP sent successfully!')
+            setIsSendingOTP(true)
+            try {
+                const response = await axios.post(`${process.env.EXPO_PUBLIC_API_URL}/api/app/signin/sendOtp`, {
+                    phone: mobileNumber
+                },{
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                        'Accept': 'application/json',
+                    }
+                })
+                if(response.data.success == true){
+                    setShowOTP(true)
+                    setVerificationStatus('idle')
+                    setStatusMessage('OTP sent successfully!')
+                }else{
+                    setVerificationStatus('failure')
+                    setStatusMessage('Failed to send OTP. Please try again.')
+                }
+            } catch (error) {
+                setVerificationStatus('failure')
+                setStatusMessage('Failed to send OTP. Please try again.')
+            } finally {
+                setIsSendingOTP(false)
+            }
         }
     }
 
-    const handleVerifyOTP = () => {
+    const handleVerifyOTP = async() => {
         if (otp.length === 4) {
-            console.log('Verifying OTP:', otp)
-            
-            if (otp === '1234') {
-                setVerificationStatus('success')
-                setStatusMessage('OTP verified successfully!')
-                setTimeout(() => {
+            setIsVerifyingOTP(true)
+            try {
+                const otpResponse = await axios.post(`${process.env.EXPO_PUBLIC_API_URL}/api/app/signin/verifyOtp`, {
+                    mobile: mobileNumber,
+                    otp: otp
+                },{
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                        'Accept': 'application/json',
+                    }
+                })
+                
+                // if verified
+                if (otpResponse.data.success == true && otpResponse.data.student.isVerified == true) {
+                    AsyncStorage.setItem('token', otpResponse.data.student.token)
+                    setVerificationStatus('success')
+                    setStatusMessage('OTP verified successfully!')
                     setIsSignedIn(true)
-                }, 1000)
-            } else {
+                } 
+
+                // if not verified
+                if(otpResponse.data.success == true && otpResponse.data.student.isVerified == false){
+                    AsyncStorage.setItem('token', otpResponse.data.student.token)
+                    setShowMandatoryDetails(true)
+                }
+            } catch (error) {
                 setVerificationStatus('failure')
-                setStatusMessage('Invalid OTP. Please try again.')
+                setStatusMessage('Failed to verify OTP. Please try again.')
+            } finally {
+                setIsVerifyingOTP(false)
+            }
+        }
+    }
+
+    const handleSaveDetails = async () => {
+        if (isFormValid) {
+            setIsSaving(true)
+            try {
+                const token = await AsyncStorage.getItem('token')
+                const response = await axios.post(`${process.env.EXPO_PUBLIC_API_URL}/api/app/signin/mandatoryDetails`, {
+                    token: token,
+                    name: name,
+                    email: email
+                },{
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                        'Accept': 'application/json',
+                    }
+                })
+
+                // console.log(response.data)
+                
+                if(response.data.success) {
+                    setIsSignedIn(true)
+                }
+            } catch (error) {
+                setStatusMessage('Failed to save details. Please try again.')
+            } finally {
+                setIsSaving(false)
             }
         }
     }
@@ -156,13 +230,13 @@ export default function SignInScreen() {
                             <MobileInput width={width} value={mobileNumber} onChange={setMobileNumber} />
                             <CustomButton 
                                 onPress={handleSendOTP}
-                                disabled={mobileNumber.length !== 10}
+                                disabled={mobileNumber.length !== 10 || isSendingOTP}
                                 bgColor={mobileNumber.length === 10 ? 'bg-[#89e219]' : 'bg-[#E5E5E5]'}
                                 borderColor={mobileNumber.length === 10 ? '#58cc02' : '#999'}
                                 text={`${width > 768 ? 'text-lg' : 'text-base'} ${mobileNumber.length === 10 ? 'text-white' : 'text-[#666]'} text-center font-bold`}
                             >
                                 <Text className={`${width > 768 ? 'text-lg' : 'text-base'} ${mobileNumber.length === 10 ? 'text-white' : 'text-[#666]'} text-center font-bold`}>
-                                    Send OTP
+                                    {isSendingOTP ? 'Sending OTP...' : 'Send OTP'}
                                 </Text>
                             </CustomButton>
                         </>
@@ -171,13 +245,13 @@ export default function SignInScreen() {
                             <OTPInput width={width} value={otp} onChange={setOTP} />
                             <CustomButton 
                                 onPress={handleVerifyOTP}
-                                disabled={otp.length !== 4}
+                                disabled={otp.length !== 4 || isVerifyingOTP}
                                 bgColor={otp.length === 4 ? 'bg-[#58cc02]' : 'bg-[#E5E5E5]'}
                                 borderColor={otp.length === 4 ? '#89e219' : '#999'}
                                 text={`${width > 768 ? 'text-lg' : 'text-base'} ${otp.length === 4 ? 'text-white' : 'text-[#666]'} text-center font-bold`}
                             >
                                 <Text className={`${width > 768 ? 'text-lg' : 'text-base'} ${otp.length === 4 ? 'text-white' : 'text-[#666]'} text-center font-bold`}>
-                                    Verify OTP
+                                    {isVerifyingOTP ? 'Verifying OTP...' : 'Verify OTP'}
                                 </Text>
                             </CustomButton>
                         </>
@@ -206,6 +280,40 @@ export default function SignInScreen() {
                     </View>
                 </CustomButton>
             </View>
+
+            {showMandatoryDetails && (
+                <View className="absolute inset-0 justify-center items-center bg-black/50">
+                    <View className="bg-white p-6 rounded-[20px] w-[90%] max-w-[500px]">
+                        <Text className="text-2xl font-bold text-center mb-4">Mandatory Details Required</Text>
+                        <TextInput
+                            className={`${width > 768 ? 'text-lg' : 'text-base'} bg-[#F0F0F0] rounded-2xl mb-4 p-4 text-[#333]`}
+                            placeholder="Enter your name"
+                            placeholderTextColor="#666"
+                            value={name}
+                            onChangeText={setName}
+                        />
+                        <TextInput
+                            className={`${width > 768 ? 'text-lg' : 'text-base'} bg-[#F0F0F0] rounded-2xl mb-4 p-4 text-[#333]`}
+                            placeholder="Enter your email"
+                            placeholderTextColor="#666"
+                            keyboardType="email-address"
+                            value={email}
+                            onChangeText={setEmail}
+                        />
+                        <CustomButton 
+                            onPress={handleSaveDetails}
+                            disabled={!isFormValid || isSaving}
+                            bgColor={isFormValid ? 'bg-[#89e219]' : 'bg-[#E5E5E5]'}
+                            borderColor={isFormValid ? '#58cc02' : '#999'}
+                            text={`${width > 768 ? 'text-lg' : 'text-base'} ${isFormValid ? 'text-white' : 'text-[#666]'} text-center font-bold`}
+                        >
+                            <Text className={`${width > 768 ? 'text-lg' : 'text-base'} ${isFormValid ? 'text-white' : 'text-[#666]'} text-center font-bold`}>
+                                {isSaving ? 'Saving...' : 'Save Details'}
+                            </Text>
+                        </CustomButton>
+                    </View>
+                </View>
+            )}
         </View>
     )
 }
