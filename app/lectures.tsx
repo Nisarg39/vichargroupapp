@@ -57,7 +57,8 @@ export default function Lectures() {
           }
         );
         if (response.data.success == true) {
-          setLectures(response.data.chapter.lectures);
+            console.log(response.data.chapter.lectures[0].videoUrl);
+            setLectures(response.data.chapter.lectures);
             setDpps(response.data.chapter.dpps);
             setExercises(response.data.chapter.exercises);
         } else {

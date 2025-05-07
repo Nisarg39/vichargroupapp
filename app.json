@@ -17,12 +17,14 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.nisarg39.vicharGroup"
+      "package": "com.nisarg39.vicharGroup",
+      "permissions": ["INTERNET"]
     },
     "web": {
       "bundler": "metro",
       "output": "single",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/favicon.png",
+      "permissions": ["INTERNET"]
     },
     "plugins": [
       "expo-router",
