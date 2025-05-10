@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { View, Text, ScrollView, Image, TouchableOpacity, TextInput } from 'react-native'
 import { Ionicons } from '@expo/vector-icons';
 
@@ -54,68 +54,12 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
     }>({});
     
     const [showResults, setShowResults] = useState<boolean>(false);
-    // Add these state variables
-    const [startTime, setStartTime] = useState<number>(0);
-    const [elapsedTime, setElapsedTime] = useState<number>(0);
-    const [questionTimes, setQuestionTimes] = useState<{[questionId: string]: number}>({});
-    const [timerInterval, setTimerInterval] = useState<NodeJS.Timeout | null>(null);
-
-    // Add this helper function to format time
-    const formatTime = (timeInSeconds: number): string => {
-      // Ensure timeInSeconds is a valid number
-      if (typeof timeInSeconds !== 'number' || isNaN(timeInSeconds)) {
-        timeInSeconds = 0;
-      }
-      
-      // Ensure the time is not negative or extremely large
-      if (timeInSeconds < 0 || timeInSeconds > 86400) { // 24 hours max
-        timeInSeconds = 0;
-      }
-      
-      const minutes = Math.floor(timeInSeconds / 60);
-      const seconds = Math.floor(timeInSeconds % 60); // Ensure seconds is an integer
-      
-      // Format as MM:SS
-      return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    };
-
-    // Add this useEffect to handle timer updates
-    useEffect(() => {
-      if (startTime > 0) {
-        const interval = setInterval(() => {
-          setElapsedTime(Math.floor((Date.now() - startTime) / 1000));
-        }, 1000);
-        
-        setTimerInterval(interval);
-        
-        return () => clearInterval(interval);
-      }
-    }, [startTime]);
 
     const handleDppSelect = (dppId: string) => {
         setSelectedDpp(dppId);
-        setShowDppList(false);
-        setCurrentQuestionIndex(0);
+        setShowDppList(false); // Hide DPP list when a DPP is selected
+        setCurrentQuestionIndex(0); // Reset to first question when selecting a new DPP
         setShowResults(false);
-        
-        // Clear any existing interval first
-        if (timerInterval) {
-          clearInterval(timerInterval);
-        }
-        
-        // Reset timer to 0 first
-        setElapsedTime(0);
-        
-        // Then set the start time
-        const now = Date.now();
-        setStartTime(now);
-        
-        // Start a new timer interval
-        const interval = setInterval(() => {
-          setElapsedTime(Math.floor((Date.now() - now) / 1000));
-        }, 1000);
-        
-        setTimerInterval(interval);
         
         // Load saved answers for the first question if available
         const dpp = dpps.find(d => d._id === dppId);
@@ -130,13 +74,6 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
         setShowDppList(true);
         setShowResults(false);
         resetAnswers();
-        
-        // Clear the timer interval
-        if (timerInterval) {
-          clearInterval(timerInterval);
-          setTimerInterval(null);
-        }
-        
         // Optionally clear all stored answers if you want to reset everything
         // setUserAnswers({});
     };
@@ -163,7 +100,6 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
         }
         
         if (savedAnswer.numericAnswer) {
-            console.log('Saved numeric answer:', savedAnswer.numericAnswer);
           setNumericAnswer(savedAnswer.numericAnswer);
         } else {
           setNumericAnswer('');
@@ -175,26 +111,6 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
 
     const handleNextQuestion = () => {
         if (currentDpp && currentQuestionIndex < currentDpp.dppQuestions.length - 1) {
-            // Save time for current question
-            if (currentQuestion) {
-              setQuestionTimes(prev => ({
-                ...prev,
-                [currentQuestion._id]: elapsedTime
-              }));
-            }
-            
-            // First stop the current timer
-            if (timerInterval) {
-              clearInterval(timerInterval);
-              setTimerInterval(null);
-            }
-            
-            // Reset elapsed time first
-            setElapsedTime(0);
-            
-            // Then set the new start time
-            setStartTime(Date.now());
-            
             setCurrentQuestionIndex(currentQuestionIndex + 1);
             // Load saved answers for the next question
             if (currentDpp.dppQuestions[currentQuestionIndex + 1]) {
@@ -205,26 +121,6 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
 
     const handlePrevQuestion = () => {
         if (currentQuestionIndex > 0) {
-            // Save time for current question
-            if (currentQuestion) {
-              setQuestionTimes(prev => ({
-                ...prev,
-                [currentQuestion._id]: elapsedTime
-              }));
-            }
-            
-            // First stop the current timer
-            if (timerInterval) {
-              clearInterval(timerInterval);
-              setTimerInterval(null);
-            }
-            
-            // Reset elapsed time first
-            setElapsedTime(0);
-            
-            // Then set the new start time
-            setStartTime(Date.now());
-            
             setCurrentQuestionIndex(currentQuestionIndex - 1);
             // Load saved answers for the previous question
             if (currentDpp && currentDpp.dppQuestions[currentQuestionIndex - 1]) {
@@ -320,18 +216,6 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
         
         // Update the state
         setUserAnswers(currentAnswers);
-        
-        // Save time for the last question
-        setQuestionTimes(prev => ({
-          ...prev,
-          [currentQuestion._id]: elapsedTime
-        }));
-      }
-      
-      // Clear the timer interval
-      if (timerInterval) {
-        clearInterval(timerInterval);
-        setTimerInterval(null);
       }
       
       // Show the results view
@@ -453,27 +337,21 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
         );
       }
       
-      // Display correct numeric answer - improved handling
+      // Display correct numeric answer
       if (question.answerNumeric !== undefined) {
-        console.log('Displaying numeric answer:', question.answerNumeric, typeof question.answerNumeric);
-        
-        // Handle all possible types and ensure we have a displayable value
-        let displayValue = '';
-        
-        if (typeof question.answerNumeric === 'number') {
-          displayValue = question.answerNumeric.toString();
-        } else if (typeof question.answerNumeric === 'string') {
-          displayValue = question.answerNumeric;
-        } else {
-          // If it's some other type, convert to string
-          displayValue = String(question.answerNumeric);
+        // If answerNumeric might be a string in some cases
+        if (question.answerNumeric !== undefined) {
+          // Ensure it's treated as a number
+          const correctAnswer = typeof question.answerNumeric === 'string' 
+            ? parseFloat(question.answerNumeric) 
+            : question.answerNumeric;
+            
+          return <Text className="text-green-800">{question.answerNumeric}</Text>;
         }
-        
-        return <Text className="text-green-800">{displayValue}</Text>;
+      } else {
+        console.log('No numeric answer found for question:', question._id);
+        return <Text className="text-gray-500 italic">No numeric answer available</Text>;
       }
-      
-      // If no answer type was found
-      return <Text className="text-gray-500 italic">No answer available</Text>;
     };
 
     return (
@@ -542,7 +420,6 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
               {currentDpp && currentDpp.dppQuestions.map((question, index) => {
                 const userAnswer = userAnswers[question._id] || {};
                 const isCorrect = checkIfAnswerIsCorrect(question, userAnswer);
-                const timeTaken = questionTimes[question._id] || 0;
                 
                 return (
                   <View key={question._id} className="mb-4 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
@@ -557,11 +434,6 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
                       </View>
                     </View>
                     
-                    {/* Display time taken */}
-                    <Text className="text-sm text-gray-600 mb-2">
-                      Time taken: {formatTime(timeTaken)}
-                    </Text>
-                    
                     {/* Display user's answer */}
                     <View className="mt-3 p-3 bg-gray-50 rounded-lg">
                       <Text className="text-sm font-medium text-gray-700 mb-1">Your answer:</Text>
@@ -571,11 +443,7 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
                     {/* Display correct answer */}
                     <View className="mt-3 p-3 bg-green-50 rounded-lg">
                       <Text className="text-sm font-medium text-green-700 mb-1">Correct answer:</Text>
-                      {question.answerNumeric !== undefined ? (
-                        <Text className="text-green-800">{question.answerNumeric.toString()}</Text>
-                      ) : (
-                        displayCorrectAnswer(question)
-                      )}
+                      {displayCorrectAnswer(question)}
                     </View>
                   </View>
                 );
@@ -591,12 +459,14 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
                 <Text className="text-lg font-semibold text-gray-800">
                   {currentDpp.title || `DPP ${dpps.findIndex(d => d._id === selectedDpp) + 1}`}
                 </Text>
-                <View className="flex-row items-center mt-1 justify-between">
+                <View className="flex-row items-center mt-1">
+                  {/* Remove this Text component that shows the date */}
+                  {/* <Text className="text-sm text-gray-600">
+                    {formatDate(currentDpp.createdAt)}
+                  </Text>
+                  <Text className="text-sm text-gray-600 mx-2">•</Text> */}
                   <Text className="text-sm text-gray-600">
                     Question {currentQuestionIndex + 1} of {currentDpp.dppQuestions.length}
-                  </Text>
-                  <Text className="text-sm font-medium text-humpback-500">
-                    Time: {elapsedTime !== undefined ? formatTime(elapsedTime) : "00:00"}
                   </Text>
                 </View>
               </View>

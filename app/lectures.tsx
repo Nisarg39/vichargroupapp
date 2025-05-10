@@ -57,7 +57,7 @@ export default function Lectures() {
           }
         );
         if (response.data.success == true) {
-            console.log(response.data.chapter.lectures[0].videoUrl);
+            // console.log(response.data.chapter.lectures[0].videoUrl);
             setLectures(response.data.chapter.lectures);
             setDpps(response.data.chapter.dpps);
             setExercises(response.data.chapter.exercises);

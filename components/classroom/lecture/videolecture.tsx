@@ -142,7 +142,7 @@ const VideoLecture: React.FC<VideoLectureProps> = ({ lectures }) => {
                             
                             <View className="mb-2">
                                 <Text className="text-lg font-bold mb-2">Sort by Teacher</Text>
-                                {uniqueTeachers.map((teacher) => (
+                                {uniqueTeachers.map((teacher: any) => (
                                     <TouchableOpacity 
                                         key={teacher.name}
                                         onPress={() => {
