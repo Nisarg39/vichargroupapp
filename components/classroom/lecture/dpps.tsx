@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { View, Text, ScrollView, Image, TouchableOpacity, TextInput } from 'react-native'
 import { Ionicons } from '@expo/vector-icons';
+import { renderLatex } from '@/utils/textUtils';
+import { WebView } from 'react-native-webview';
 
-// Define a more specific type based on the MongoDB model
 interface DppQuestion {
     _id: string;
     serialNumber: number;
@@ -59,6 +60,7 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
     const [elapsedTime, setElapsedTime] = useState<number>(0);
     const [questionTimes, setQuestionTimes] = useState<{[questionId: string]: number}>({});
     const [timerInterval, setTimerInterval] = useState<NodeJS.Timeout | null>(null);
+    const [webViewHeights, setWebViewHeights] = useState<{[questionId: string]: number}>({});
 
     // Add this helper function to format time
     const formatTime = (timeInSeconds: number): string => {
@@ -81,9 +83,15 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
 
     // Add this useEffect to handle timer updates
     useEffect(() => {
+      // Clear any existing interval first to prevent multiple intervals
+      if (timerInterval) {
+        clearInterval(timerInterval);
+      }
+      
       if (startTime > 0) {
         const interval = setInterval(() => {
-          setElapsedTime(Math.floor((Date.now() - startTime) / 1000));
+          const newElapsedTime = Math.floor((Date.now() - startTime) / 1000);
+          setElapsedTime(newElapsedTime);
         }, 1000);
         
         setTimerInterval(interval);
@@ -101,21 +109,14 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
         // Clear any existing interval first
         if (timerInterval) {
           clearInterval(timerInterval);
+          setTimerInterval(null);
         }
         
         // Reset timer to 0 first
         setElapsedTime(0);
         
-        // Then set the start time
-        const now = Date.now();
-        setStartTime(now);
-        
-        // Start a new timer interval
-        const interval = setInterval(() => {
-          setElapsedTime(Math.floor((Date.now() - now) / 1000));
-        }, 1000);
-        
-        setTimerInterval(interval);
+        // Reset question times
+        setQuestionTimes({});
         
         // Load saved answers for the first question if available
         const dpp = dpps.find(d => d._id === dppId);
@@ -124,12 +125,29 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
         } else {
           resetAnswers();
         }
+        
+        // Add a small delay before starting the timer
+        setTimeout(() => {
+          const now = Date.now();
+          setStartTime(now);
+        }, 100);
     };
 
     const handleBackToDppList = () => {
         setShowDppList(true);
         setShowResults(false);
+        
+        // Reset all answer states
         resetAnswers();
+        
+        // Reset user answers for all questions
+        setUserAnswers({});
+        
+        // Reset current question index
+        setCurrentQuestionIndex(0);
+        
+        // Reset selected DPP
+        setSelectedDpp(null);
         
         // Clear the timer interval
         if (timerInterval) {
@@ -137,8 +155,13 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
           setTimerInterval(null);
         }
         
-        // Optionally clear all stored answers if you want to reset everything
-        // setUserAnswers({});
+        // Reset all timer-related states
+        setElapsedTime(0);
+        setStartTime(0);
+        setQuestionTimes({});
+        
+        // Reset WebView heights
+        setWebViewHeights({});
     };
 
     const resetAnswers = () => {
@@ -189,17 +212,22 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
               setTimerInterval(null);
             }
             
-            // Reset elapsed time first
+            // Reset elapsed time to 0
             setElapsedTime(0);
             
-            // Then set the new start time
-            setStartTime(Date.now());
-            
+            // Move to next question
             setCurrentQuestionIndex(currentQuestionIndex + 1);
+            
             // Load saved answers for the next question
             if (currentDpp.dppQuestions[currentQuestionIndex + 1]) {
               loadSavedAnswers(currentDpp.dppQuestions[currentQuestionIndex + 1]._id);
             }
+            
+            // Add a small delay before starting the new timer
+            setTimeout(() => {
+              const now = Date.now();
+              setStartTime(now);
+            }, 100);
         }
     };
 
@@ -219,17 +247,22 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
               setTimerInterval(null);
             }
             
-            // Reset elapsed time first
+            // Reset elapsed time to 0
             setElapsedTime(0);
             
-            // Then set the new start time
-            setStartTime(Date.now());
-            
+            // Move to previous question
             setCurrentQuestionIndex(currentQuestionIndex - 1);
+            
             // Load saved answers for the previous question
             if (currentDpp && currentDpp.dppQuestions[currentQuestionIndex - 1]) {
               loadSavedAnswers(currentDpp.dppQuestions[currentQuestionIndex - 1]._id);
             }
+            
+            // Add a small delay before starting the new timer
+            setTimeout(() => {
+              const now = Date.now();
+              setStartTime(now);
+            }, 100);
         }
     };
 
@@ -396,9 +429,18 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
       if (question.objectiveoptions && userAnswer.selectedOption) {
         const option = question.objectiveoptions.find(opt => opt.option === userAnswer.selectedOption);
         return (
-          <Text className="text-gray-800">
-            {userAnswer.selectedOption}) {option?.text || ''}
-          </Text>
+          <View>
+            <Text className="text-gray-800">
+              {userAnswer.selectedOption}) {option?.isImage ? '' : option?.text || ''}
+            </Text>
+            {option?.isImage && (
+              <Image 
+                source={{ uri: option.text }} 
+                className="w-full h-40 mt-2 rounded-lg"
+                resizeMode="contain"
+              />
+            )}
+          </View>
         );
       }
       
@@ -409,9 +451,18 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
             {userAnswer.selectedMultipleOptions.map((opt, idx) => {
               const option = question.multipleObjective?.find(o => o.option === opt);
               return (
-                <Text key={idx} className="text-gray-800">
-                  {opt}) {option?.text || ''}
-                </Text>
+                <View key={idx} className="mb-2">
+                  <Text className="text-gray-800">
+                    {opt}) {option?.isImage ? '' : option?.text || ''}
+                  </Text>
+                  {option?.isImage && (
+                    <Image 
+                      source={{ uri: option.text }} 
+                      className="w-full h-40 mt-1 rounded-lg"
+                      resizeMode="contain"
+                    />
+                  )}
+                </View>
               );
             })}
           </View>
@@ -431,9 +482,18 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
       if (question.answerObjective && question.objectiveoptions) {
         const option = question.objectiveoptions.find(opt => opt.option === question.answerObjective);
         return (
-          <Text className="text-green-800">
-            {question.answerObjective}) {option?.text || ''}
-          </Text>
+          <View>
+            <Text className="text-green-800">
+              {question.answerObjective}) {option?.isImage ? '' : option?.text || ''}
+            </Text>
+            {option?.isImage && (
+              <Image 
+                source={{ uri: option.text }} 
+                className="w-full h-40 mt-2 rounded-lg"
+                resizeMode="contain"
+              />
+            )}
+          </View>
         );
       }
       
@@ -444,20 +504,26 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
             {question.answerMultiple.map((opt, idx) => {
               const option = question.multipleObjective?.find(o => o.option === opt);
               return (
-                <Text key={idx} className="text-green-800">
-                  {opt}) {option?.text || ''}
-                </Text>
+                <View key={idx} className="mb-2">
+                  <Text className="text-green-800">
+                    {opt}) {option?.isImage ? '' : option?.text || ''}
+                  </Text>
+                  {option?.isImage && (
+                    <Image 
+                      source={{ uri: option.text }} 
+                      className="w-full h-40 mt-1 rounded-lg"
+                      resizeMode="contain"
+                    />
+                  )}
+                </View>
               );
             })}
           </View>
         );
       }
       
-      // Display correct numeric answer - improved handling
+      // Display correct numeric answer
       if (question.answerNumeric !== undefined) {
-        console.log('Displaying numeric answer:', question.answerNumeric, typeof question.answerNumeric);
-        
-        // Handle all possible types and ensure we have a displayable value
         let displayValue = '';
         
         if (typeof question.answerNumeric === 'number') {
@@ -465,14 +531,299 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
         } else if (typeof question.answerNumeric === 'string') {
           displayValue = question.answerNumeric;
         } else {
-          // If it's some other type, convert to string
           displayValue = String(question.answerNumeric);
         }
         
         return <Text className="text-green-800">{displayValue}</Text>;
       }
       
-      // If no answer type was found
+      return <Text className="text-gray-500 italic">No answer available</Text>;
+    };
+
+    const handleWebViewMessage = (questionId: string, event: any) => {
+      try {
+        const data = JSON.parse(event.nativeEvent.data);
+        if (data.type === 'contentHeight') {
+          setWebViewHeights(prev => ({
+            ...prev,
+            [questionId]: data.height + 20 // Add some padding
+          }));
+        }
+      } catch (error) {
+        console.error('Error parsing WebView message:', error);
+      }
+    };
+
+    const renderDynamicLatex = (content: string, questionId: string, style: any = {}) => {
+      if (!content || typeof content !== 'string') return null;
+      
+      // Check if content contains LaTeX
+      const containsLatex = content.includes('$');
+      
+      if (!containsLatex) {
+        // If no LaTeX, use the regular renderLatex function
+        return renderLatex(content, style);
+      }
+      
+      // HTML template with script to report content height
+      const html = `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css">
+            <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js"></script>
+            <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js"></script>
+            <style>
+              body {
+                margin: 0;
+                padding: 0;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+                font-size: ${style.fontSize || 16}px;
+                color: ${style.color || '#000'};
+                background-color: transparent;
+              }
+              strong { font-weight: bold; }
+              em { font-style: italic; }
+              #content {
+                padding: 0;
+                margin: 0;
+              }
+            </style>
+          </head>
+          <body>
+            <div id="content">${processContent(content)}</div>
+            <script>
+              // Function to report content height to React Native
+              function reportHeight() {
+                const height = document.documentElement.scrollHeight;
+                window.ReactNativeWebView.postMessage(JSON.stringify({
+                  type: 'contentHeight',
+                  height: height
+                }));
+              }
+              
+              // Render LaTeX and then report height
+              document.addEventListener("DOMContentLoaded", function() {
+                renderMathInElement(document.getElementById("content"), {
+                  delimiters: [
+                    {left: "$", right: "$", display: false},
+                    {left: "$$", right: "$$", display: true}
+                  ],
+                  throwOnError: false
+                });
+                
+                // Report height after rendering
+                setTimeout(reportHeight, 100);
+              });
+              
+              // Report height on load as well
+              window.onload = reportHeight;
+            </script>
+          </body>
+        </html>
+      `;
+      
+      return (
+        <WebView
+          key={`latex-${questionId}`}
+          originWhitelist={['*']}
+          source={{ html }}
+          style={[
+            { 
+              backgroundColor: 'transparent',
+              height: webViewHeights[questionId] || 100, // Use stored height or default
+              width: '100%'
+            }, 
+            style
+          ]}
+          scrollEnabled={false}
+          javaScriptEnabled={true}
+          onMessage={(event) => handleWebViewMessage(questionId, event)}
+        />
+      );
+    };
+
+    const processContent = (content: string): string => {
+      if (!content) return '';
+      
+      // Escape HTML special characters except for our formatting markers
+      let processed = content
+        .replace(/&/g, '&')
+        .replace(/</g, '<')
+        .replace(/>/g, '>')
+        .replace(/"/g, '"')
+        .replace(/'/g, "'")
+      
+      // Process bold formatting
+      processed = processed.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      
+      // Process italic formatting
+      processed = processed.replace(/\*(.*?)\*/g, '<em>$1</em>');
+      
+      // Process line breaks
+      processed = processed.replace(/\n/g, '<br>');
+      
+      return processed;
+    };
+
+    const displayDynamicUserAnswer = (
+      question: DppQuestion,
+      userAnswer: {
+        selectedOption?: string;
+        selectedMultipleOptions?: string[];
+        numericAnswer?: string;
+      }
+    ) => {
+      // Display single choice answer
+      if (question.objectiveoptions && userAnswer.selectedOption) {
+        const option = question.objectiveoptions.find(opt => opt.option === userAnswer.selectedOption);
+        return (
+          <View>
+            <View className="flex-row items-start">
+              <Text className="text-gray-800 mr-1">
+                {userAnswer.selectedOption})
+              </Text>
+              {option?.isImage ? (
+                <Image 
+                  source={{ uri: option.text }} 
+                  className="w-full h-40 mt-2 rounded-lg"
+                  resizeMode="contain"
+                />
+              ) : (
+                <View className="flex-1">
+                  {renderDynamicLatex(option?.text || '', `user-answer-${question._id}-${userAnswer.selectedOption}`, { 
+                    fontSize: 14, 
+                    color: '#374151' 
+                  })}
+                </View>
+              )}
+            </View>
+          </View>
+        );
+      }
+      
+      // Display multiple choice answers
+      if (question.multipleObjective && userAnswer.selectedMultipleOptions && userAnswer.selectedMultipleOptions.length > 0) {
+        return (
+          <View>
+            {userAnswer.selectedMultipleOptions.map((opt, idx) => {
+              const option = question.multipleObjective?.find(o => o.option === opt);
+              return (
+                <View key={idx} className="mb-2">
+                  <View className="flex-row items-start">
+                    <Text className="text-gray-800 mr-1">
+                      {opt})
+                    </Text>
+                    {option?.isImage ? (
+                      <Image 
+                        source={{ uri: option.text }} 
+                        className="w-full h-40 mt-1 rounded-lg"
+                        resizeMode="contain"
+                      />
+                    ) : (
+                      <View className="flex-1">
+                        {renderDynamicLatex(option?.text || '', `user-answer-${question._id}-multiple-${idx}`, { 
+                          fontSize: 14, 
+                          color: '#374151' 
+                        })}
+                      </View>
+                    )}
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        );
+      }
+      
+      // Display numeric answer
+      if (question.answerNumeric !== undefined && userAnswer.numericAnswer) {
+        return <Text className="text-gray-800">{userAnswer.numericAnswer}</Text>;
+      }
+      
+      return <Text className="text-gray-500 italic">No answer provided</Text>;
+    };
+
+    const displayDynamicCorrectAnswer = (question: DppQuestion) => {
+      // Display correct single choice answer
+      if (question.answerObjective && question.objectiveoptions) {
+        const option = question.objectiveoptions.find(opt => opt.option === question.answerObjective);
+        return (
+          <View>
+            <View className="flex-row items-start">
+              <Text className="text-green-800 mr-1">
+                {question.answerObjective})
+              </Text>
+              {option?.isImage ? (
+                <Image 
+                  source={{ uri: option.text }} 
+                  className="w-full h-40 mt-2 rounded-lg"
+                  resizeMode="contain"
+                />
+              ) : (
+                <View className="flex-1">
+                  {renderDynamicLatex(option?.text || '', `correct-answer-${question._id}-${question.answerObjective}`, { 
+                    fontSize: 14, 
+                    color: '#005f46' 
+                  })}
+                </View>
+              )}
+            </View>
+          </View>
+        );
+      }
+      
+      // Display correct multiple choice answers
+      if (question.answerMultiple && question.multipleObjective) {
+        return (
+          <View>
+            {question.answerMultiple.map((opt, idx) => {
+              const option = question.multipleObjective?.find(o => o.option === opt);
+              return (
+                <View key={idx} className="mb-2">
+                  <View className="flex-row items-start">
+                    <Text className="text-green-800 mr-1">
+                      {opt})
+                    </Text>
+                    {option?.isImage ? (
+                      <Image 
+                        source={{ uri: option.text }} 
+                        className="w-full h-40 mt-1 rounded-lg"
+                        resizeMode="contain"
+                      />
+                    ) : (
+                      <View className="flex-1">
+                        {renderDynamicLatex(option?.text || '', `correct-answer-${question._id}-multiple-${idx}`, { 
+                          fontSize: 14, 
+                          color: '#005f46' 
+                        })}
+                      </View>
+                    )}
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        );
+      }
+      
+      // Display correct numeric answer
+      if (question.answerNumeric !== undefined) {
+        let displayValue = '';
+        
+        if (typeof question.answerNumeric === 'number') {
+          displayValue = question.answerNumeric.toString();
+        } else if (typeof question.answerNumeric === 'string') {
+          displayValue = question.answerNumeric;
+        } else {
+          displayValue = String(question.answerNumeric);
+        }
+        
+        return <Text className="text-green-800">{displayValue}</Text>;
+      }
+      
       return <Text className="text-gray-500 italic">No answer available</Text>;
     };
 
@@ -547,15 +898,33 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
                 return (
                   <View key={question._id} className="mb-4 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
                     <View className="flex-row justify-between items-start">
-                      <Text className="text-base font-medium text-gray-800 mb-2 flex-1 mr-2">
-                        {question.serialNumber}. {question.question}
-                      </Text>
+                      <View className="flex-row items-start flex-1 mr-2">
+                        <Text className="text-base font-medium text-gray-800 mr-1">
+                          {question.serialNumber}.
+                        </Text>
+                        <View className="flex-1">
+                          {renderDynamicLatex(question.question, `result-${question._id}`, { 
+                            fontSize: 16, 
+                            color: '#1f2937', 
+                            fontWeight: '500' 
+                          })}
+                        </View>
+                      </View>
                       <View className={`px-3 py-1 rounded-full ${isCorrect ? 'bg-green-100' : 'bg-red-100'}`}>
                         <Text className={`font-medium ${isCorrect ? 'text-green-800' : 'text-red-800'}`}>
                           {isCorrect ? 'Correct' : 'Incorrect'}
                         </Text>
                       </View>
                     </View>
+                    
+                    {/* Display question image if available */}
+                    {question.questionImage && (
+                      <Image 
+                        source={{ uri: question.questionImage }} 
+                        className="w-full h-48 mb-4 rounded-lg"
+                        resizeMode="contain"
+                      />
+                    )}
                     
                     {/* Display time taken */}
                     <Text className="text-sm text-gray-600 mb-2">
@@ -571,11 +940,7 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
                     {/* Display correct answer */}
                     <View className="mt-3 p-3 bg-green-50 rounded-lg">
                       <Text className="text-sm font-medium text-green-700 mb-1">Correct answer:</Text>
-                      {question.answerNumeric !== undefined ? (
-                        <Text className="text-green-800">{question.answerNumeric.toString()}</Text>
-                      ) : (
-                        displayCorrectAnswer(question)
-                      )}
+                      {displayCorrectAnswer(question)}
                     </View>
                   </View>
                 );
@@ -606,9 +971,18 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
             <View className="mt-2 mb-4 mx-3">
               {currentQuestion && (
                 <View className="mb-6 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                  <Text className="text-base font-medium text-gray-800 mb-3">
-                    {currentQuestion.serialNumber}. {currentQuestion.question}
-                  </Text>
+                  <View className="flex-row items-start mb-3">
+                    <Text className="text-base font-medium text-gray-800 mr-1">
+                      {currentQuestion.serialNumber}.
+                    </Text>
+                    <View className="flex-1">
+                      {renderDynamicLatex(currentQuestion.question, currentQuestion._id, { 
+                        fontSize: 16, 
+                        color: '#1f2937', 
+                        fontWeight: '500' 
+                      })}
+                    </View>
+                  </View>
                 
                   {currentQuestion.questionImage && (
                     <Image 
@@ -649,7 +1023,12 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
                               resizeMode="contain"
                             />
                           ) : (
-                            <Text className="text-gray-700 flex-1">{option.text}</Text>
+                            <View className="flex-1">
+                              {renderDynamicLatex(option.text, `${currentQuestion._id}-option-${index}`, { 
+                                fontSize: 14, 
+                                color: '#374151' 
+                              })}
+                            </View>
                           )}
                         </TouchableOpacity>
                       ))}
@@ -687,7 +1066,12 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
                               resizeMode="contain"
                             />
                           ) : (
-                            <Text className="text-gray-700 flex-1">{option.text}</Text>
+                            <View className="flex-1">
+                              {renderLatex(option.text, { 
+                                fontSize: 14, 
+                                color: '#374151' 
+                              })}
+                            </View>
                           )}
                         </TouchableOpacity>
                       ))}
