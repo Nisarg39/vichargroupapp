@@ -5,32 +5,30 @@ import { renderLatex } from '@/utils/textUtils';
 import { WebView } from 'react-native-webview';
 
 interface DppQuestion {
-    _id: string;
-    serialNumber: number;
-    question: string;
-    questionImage?: string;
-    objectiveoptions?: Array<{
-      option: string;
-      text: string;
-      isImage: boolean;
-    }>;
-    multipleObjective?: Array<{
-      option: string;
-      text: string;
-      isImage: boolean;
-    }>;
-    answerObjective?: string;
-    answerMultiple?: string[];
-    answerNumeric?: number;
-    solutionPdf?: string;
+  _id: string;
+  serialNumber: number;
+  question: string;
+  questionImage?: string;
+  objectiveoptions?: Array<{
+    option: string;
+    text: string;
+    isImage: boolean;
+  }>;
+  multipleObjective?: Array<{
+    option: string;
+    text: string;
+    isImage: boolean;
+  }>;
+  answerObjective?: string;
+  answerMultiple?: string[];
+  answerNumeric?: number;
+  solutionPdf?: string;
 }
 
 interface Dpp {
     _id: string;
     dppQuestions: DppQuestion[];
     title?: string; // Optional title for the DPP
-    // Remove or make optional
-    // createdAt?: string; // For displaying date
 }
 
 interface DPPsProps {
@@ -41,6 +39,7 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
   const [selectedDpp, setSelectedDpp] = useState<string | null>(null);
   const [showDppList, setShowDppList] = useState<boolean>(true);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
     
     // State for user answers
     const [selectedOption, setSelectedOption] = useState<string | null>(null);
@@ -55,7 +54,6 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
     }>({});
     
     const [showResults, setShowResults] = useState<boolean>(false);
-    // Add these state variables
     const [startTime, setStartTime] = useState<number>(0);
     const [elapsedTime, setElapsedTime] = useState<number>(0);
     const [questionTimes, setQuestionTimes] = useState<{[questionId: string]: number}>({});
@@ -80,6 +78,18 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
       // Format as MM:SS
       return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     };
+
+    useEffect(() => {
+      // Don't reset WebView heights when showing results
+      if (showResults) {
+        return;
+      }
+      
+      // Reset WebView heights when the current question changes
+      if (currentQuestion) {
+        setWebViewHeights({});
+      }
+    }, [currentQuestionIndex, selectedDpp, showResults]);
 
     // Add this useEffect to handle timer updates
     useEffect(() => {
@@ -163,7 +173,6 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
         // Reset WebView heights
         setWebViewHeights({});
     };
-
     const resetAnswers = () => {
         setSelectedOption(null);
         setSelectedMultipleOptions([]);
@@ -368,9 +377,9 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
       }
       
       // Show the results view
+      // Note: We're not clearing webViewHeights here to preserve them for the results view
       setShowResults(true);
     };
-
     // Add these helper functions before the return statement
     const checkIfAnswerIsCorrect = (
       question: DppQuestion,
@@ -430,16 +439,25 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
         const option = question.objectiveoptions.find(opt => opt.option === userAnswer.selectedOption);
         return (
           <View>
-            <Text className="text-gray-800">
-              {userAnswer.selectedOption}) {option?.isImage ? '' : option?.text || ''}
-            </Text>
-            {option?.isImage && (
-              <Image 
-                source={{ uri: option.text }} 
-                className="w-full h-40 mt-2 rounded-lg"
-                resizeMode="contain"
-              />
-            )}
+            <View className="flex-row items-start">
+              <Text className="text-gray-800 mr-1">
+                {userAnswer.selectedOption})
+              </Text>
+              {option?.isImage ? (
+                <Image 
+                  source={{ uri: option.text }} 
+                  className="w-full h-40 mt-2 rounded-lg"
+                  resizeMode="contain"
+                />
+              ) : (
+                <View className="flex-1">
+                  {renderDynamicLatex(option?.text || '', `result-user-answer-${question._id}-${userAnswer.selectedOption}`, { 
+                    fontSize: 14, 
+                    color: '#374151' 
+                  })}
+                </View>
+              )}
+            </View>
           </View>
         );
       }
@@ -452,16 +470,25 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
               const option = question.multipleObjective?.find(o => o.option === opt);
               return (
                 <View key={idx} className="mb-2">
-                  <Text className="text-gray-800">
-                    {opt}) {option?.isImage ? '' : option?.text || ''}
-                  </Text>
-                  {option?.isImage && (
-                    <Image 
-                      source={{ uri: option.text }} 
-                      className="w-full h-40 mt-1 rounded-lg"
-                      resizeMode="contain"
-                    />
-                  )}
+                  <View className="flex-row items-start">
+                    <Text className="text-gray-800 mr-1">
+                      {opt})
+                    </Text>
+                    {option?.isImage ? (
+                      <Image 
+                        source={{ uri: option.text }} 
+                        className="w-full h-40 mt-1 rounded-lg"
+                        resizeMode="contain"
+                      />
+                    ) : (
+                      <View className="flex-1">
+                        {renderDynamicLatex(option?.text || '', `result-user-answer-${question._id}-multiple-${idx}`, { 
+                          fontSize: 14, 
+                          color: '#374151' 
+                        })}
+                      </View>
+                    )}
+                  </View>
                 </View>
               );
             })}
@@ -477,22 +504,33 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
       return <Text className="text-gray-500 italic">No answer provided</Text>;
     };
 
-    const displayCorrectAnswer = (question: DppQuestion) => {
+    const displayCorrectAnswer = (
+      question: DppQuestion
+    ) => {
       // Display correct single choice answer
       if (question.answerObjective && question.objectiveoptions) {
         const option = question.objectiveoptions.find(opt => opt.option === question.answerObjective);
         return (
           <View>
-            <Text className="text-green-800">
-              {question.answerObjective}) {option?.isImage ? '' : option?.text || ''}
-            </Text>
-            {option?.isImage && (
-              <Image 
-                source={{ uri: option.text }} 
-                className="w-full h-40 mt-2 rounded-lg"
-                resizeMode="contain"
-              />
-            )}
+            <View className="flex-row items-start">
+              <Text className="text-green-800 mr-1">
+                {question.answerObjective})
+              </Text>
+              {option?.isImage ? (
+                <Image 
+                  source={{ uri: option.text }} 
+                  className="w-full h-40 mt-2 rounded-lg"
+                  resizeMode="contain"
+                />
+              ) : (
+                <View className="flex-1">
+                  {renderDynamicLatex(option?.text || '', `result-correct-answer-${question._id}-${question.answerObjective}`, { 
+                    fontSize: 14, 
+                    color: '#005f46' 
+                  })}
+                </View>
+              )}
+            </View>
           </View>
         );
       }
@@ -505,16 +543,25 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
               const option = question.multipleObjective?.find(o => o.option === opt);
               return (
                 <View key={idx} className="mb-2">
-                  <Text className="text-green-800">
-                    {opt}) {option?.isImage ? '' : option?.text || ''}
-                  </Text>
-                  {option?.isImage && (
-                    <Image 
-                      source={{ uri: option.text }} 
-                      className="w-full h-40 mt-1 rounded-lg"
-                      resizeMode="contain"
-                    />
-                  )}
+                  <View className="flex-row items-start">
+                    <Text className="text-green-800 mr-1">
+                      {opt})
+                    </Text>
+                    {option?.isImage ? (
+                      <Image 
+                        source={{ uri: option.text }} 
+                        className="w-full h-40 mt-1 rounded-lg"
+                        resizeMode="contain"
+                      />
+                    ) : (
+                      <View className="flex-1">
+                        {renderDynamicLatex(option?.text || '', `result-correct-answer-${question._id}-multiple-${idx}`, { 
+                          fontSize: 14, 
+                          color: '#005f46' 
+                        })}
+                      </View>
+                    )}
+                  </View>
                 </View>
               );
             })}
@@ -539,33 +586,43 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
       
       return <Text className="text-gray-500 italic">No answer available</Text>;
     };
-
     const handleWebViewMessage = (questionId: string, event: any) => {
       try {
         const data = JSON.parse(event.nativeEvent.data);
         if (data.type === 'contentHeight') {
-          setWebViewHeights(prev => ({
-            ...prev,
-            [questionId]: data.height + 20 // Add some padding
-          }));
+          // Add minimum height and prevent excessive height
+          const newHeight = Math.max(data.height, 50);
+          const maxHeight = 500; // Maximum reasonable height
+          const clampedHeight = Math.min(newHeight, maxHeight);
+          
+          // Only update if the height difference is significant
+          setWebViewHeights(prev => {
+            const currentHeight = prev[questionId] || 0;
+            if (Math.abs(currentHeight - clampedHeight) > 10) {
+              return {
+                ...prev,
+                [questionId]: clampedHeight
+              };
+            }
+            return prev;
+          });
         }
       } catch (error) {
         console.error('Error parsing WebView message:', error);
       }
     };
-
     const renderDynamicLatex = (content: string, questionId: string, style: any = {}) => {
       if (!content || typeof content !== 'string') return null;
-      
+  
       // Check if content contains LaTeX
       const containsLatex = content.includes('$');
-      
+  
       if (!containsLatex) {
         // If no LaTeX, use the regular renderLatex function
         return renderLatex(content, style);
       }
-      
-      // HTML template with script to report content height
+  
+      // HTML template with script to report content height (as updated above)
       const html = `
         <!DOCTYPE html>
         <html>
@@ -583,6 +640,7 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
                 font-size: ${style.fontSize || 16}px;
                 color: ${style.color || '#000'};
                 background-color: transparent;
+                overflow: hidden;
               }
               strong { font-weight: bold; }
               em { font-style: italic; }
@@ -595,57 +653,228 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
           <body>
             <div id="content">${processContent(content)}</div>
             <script>
+              // More reliable height calculation
+              function getAccurateHeight() {
+                // Get the content element
+                const content = document.getElementById("content");
+                // Get all child elements
+                const children = content.getElementsByTagName("*");
+            
+                // Start with the content's own scroll height
+                let maxHeight = content.scrollHeight;
+            
+                // Check each child element's position and height
+                for (let i = 0; i < children.length; i++) {
+                  const child = children[i];
+                  const bottom = child.offsetTop + child.offsetHeight;
+                  if (bottom > maxHeight) {
+                    maxHeight = bottom;
+                  }
+                }
+            
+                // Add a small buffer
+                return maxHeight + 5;
+              }
+
               // Function to report content height to React Native
               function reportHeight() {
-                const height = document.documentElement.scrollHeight;
+                const height = getAccurateHeight();
                 window.ReactNativeWebView.postMessage(JSON.stringify({
                   type: 'contentHeight',
                   height: height
                 }));
               }
-              
+          
               // Render LaTeX and then report height
               document.addEventListener("DOMContentLoaded", function() {
                 renderMathInElement(document.getElementById("content"), {
                   delimiters: [
                     {left: "$", right: "$", display: false},
-                    {left: "$$", right: "$$", display: true}
+                    {left: "$", right: "$", display: true}
                   ],
                   throwOnError: false
                 });
-                
-                // Report height after rendering
-                setTimeout(reportHeight, 100);
+            
+                // Report height after rendering with a delay to ensure everything is rendered
+                setTimeout(reportHeight, 200);
               });
-              
-              // Report height on load as well
-              window.onload = reportHeight;
+          
+              // Also report height on load and after images load
+              window.onload = function() {
+                setTimeout(reportHeight, 100);
+            
+                // Check again after a longer delay to catch any late renders
+                setTimeout(reportHeight, 500);
+              };
+          
+              // Add resize listener
+              window.addEventListener('resize', reportHeight);
             </script>
           </body>
         </html>
       `;
-      
+  
+      const hasHeight = webViewHeights[questionId] !== undefined;
+  
       return (
-        <WebView
-          key={`latex-${questionId}`}
-          originWhitelist={['*']}
-          source={{ html }}
-          style={[
-            { 
-              backgroundColor: 'transparent',
-              height: webViewHeights[questionId] || 100, // Use stored height or default
-              width: '100%'
-            }, 
-            style
-          ]}
-          scrollEnabled={false}
-          javaScriptEnabled={true}
-          onMessage={(event) => handleWebViewMessage(questionId, event)}
-        />
+        <View>
+          {!hasHeight && (
+            <Text style={{ color: '#888', fontSize: 14, marginVertical: 5 }}>Loading...</Text>
+          )}
+          <WebView
+            key={`latex-${questionId}`}
+            originWhitelist={['*']}
+            source={{ html }}
+            style={[
+              { 
+                backgroundColor: 'transparent',
+                height: webViewHeights[questionId] || 150,
+                width: '100%',
+                opacity: hasHeight ? 1 : 0,
+              }, 
+              style
+            ]}
+            scrollEnabled={false}
+            javaScriptEnabled={true}
+            onMessage={(event) => handleWebViewMessage(questionId, event)}
+          />
+        </View>
       );
     };
 
-    const processContent = (content: string): string => {
+    // Add this function to calculate summary statistics
+    const calculateResultSummary = () => {
+      if (!currentDpp) return { total: 0, correct: 0, incorrect: 0, totalTime: 0 };
+  
+      let correct = 0;
+      let incorrect = 0;
+      let totalTime = 0;
+  
+      currentDpp.dppQuestions.forEach(question => {
+        const userAnswer = userAnswers[question._id] || {};
+        if (checkIfAnswerIsCorrect(question, userAnswer)) {
+          correct++;
+        } else {
+          incorrect++;
+        }
+    
+        // Add the time taken for this question
+        totalTime += questionTimes[question._id] || 0;
+      });
+  
+      return {
+        total: currentDpp.dppQuestions.length,
+        correct,
+        incorrect,
+        totalTime
+      };
+    };
+
+    // Update the ResultsSummary component to include a Try Again button
+    const ResultsSummary = () => {
+      const summary = calculateResultSummary();
+      const percentage = summary.total > 0 ? Math.round((summary.correct / summary.total) * 100) : 0;
+
+      const handleTryAgain = () => {
+        // Reset the test but stay with the same DPP
+        setShowResults(false);
+        setCurrentQuestionIndex(0);
+        resetAnswers();
+        setUserAnswers({});
+        setQuestionTimes({});
+        setWebViewHeights({});
+        
+        // Reset timer
+        setElapsedTime(0);
+        
+        // Start the timer again
+        setTimeout(() => {
+            const now = Date.now();
+            setStartTime(now);
+        }, 100);
+      };
+
+      return (
+        <View className="mb-6 mx-1">
+            <View 
+                className="bg-humpback-500 rounded-[20px] overflow-hidden p-6 w-full"
+                style={{
+                    borderWidth: 3,
+                    borderColor: '#2259A1',
+                    borderBottomWidth: 6,
+                    borderRightWidth: 6,
+                }}
+            >
+                <Text className="text-2xl font-bold text-white mb-4 text-center">Summary</Text>
+                
+                <View className="flex-row justify-between items-center mb-4">
+                    <View className="flex-row items-center">
+                        <Ionicons name="document-text-outline" size={24} color="white" />
+                        <Text className="ml-2 text-white text-base">Total Questions:</Text>
+                    </View>
+                    <View className="bg-white px-3 py-1 rounded-full">
+                        <Text className="font-bold text-humpback-600">{summary.total}</Text>
+                    </View>
+                </View>
+                
+                <View className="flex-row justify-between items-center mb-4">
+                    <View className="flex-row items-center">
+                        <Ionicons name="checkmark-circle-outline" size={24} color="white" />
+                        <Text className="ml-2 text-white text-base">Correct Answers:</Text>
+                    </View>
+                    <View className="bg-green-100 px-3 py-1 rounded-full">
+                        <Text className="font-bold text-green-700">{summary.correct}</Text>
+                    </View>
+                </View>
+                
+                <View className="flex-row justify-between items-center mb-4">
+                    <View className="flex-row items-center">
+                        <Ionicons name="close-circle-outline" size={24} color="white" />
+                        <Text className="ml-2 text-white text-base">Incorrect Answers:</Text>
+                    </View>
+                    <View className="bg-red-100 px-3 py-1 rounded-full">
+                        <Text className="font-bold text-red-700">{summary.incorrect}</Text>
+                    </View>
+                </View>
+                
+                <View className="flex-row justify-between items-center mb-4">
+                    <View className="flex-row items-center">
+                        <Ionicons name="time-outline" size={24} color="white" />
+                        <Text className="ml-2 text-white text-base">Total Time:</Text>
+                    </View>
+                    <View className="bg-white px-3 py-1 rounded-full">
+                        <Text className="font-bold text-humpback-600">{formatTime(summary.totalTime)}</Text>
+                    </View>
+                </View>
+                
+                <View className="mt-4">
+                    <View className="h-3 bg-white/30 rounded-full overflow-hidden">
+                        <View 
+                            className={`h-full ${percentage >= 70 ? 'bg-green-400' : percentage >= 40 ? 'bg-yellow-400' : 'bg-red-400'}`}
+                            style={{ width: `${percentage}%` }}
+                        />
+                    </View>
+                    <Text className="text-white font-bold text-right mt-1">
+                        {percentage}%
+                    </Text>
+                </View>
+            </View>
+            
+            <TouchableOpacity 
+                onPress={handleTryAgain}
+                className="bg-green-500 rounded-[20px] mt-4 p-4 items-center w-full"
+                style={{
+                    borderWidth: 3,
+                    borderColor: '#1e5b3e',
+                    borderBottomWidth: 6,
+                    borderRightWidth: 6,
+                }}
+            >
+                <Text className="text-white font-bold text-lg">Try Again</Text>
+            </TouchableOpacity>
+        </View>
+      );
+    };    const processContent = (content: string): string => {
       if (!content) return '';
       
       // Escape HTML special characters except for our formatting markers
@@ -746,6 +975,7 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
       return <Text className="text-gray-500 italic">No answer provided</Text>;
     };
 
+
     const displayDynamicCorrectAnswer = (question: DppQuestion) => {
       // Display correct single choice answer
       if (question.answerObjective && question.objectiveoptions) {
@@ -827,313 +1057,395 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
       return <Text className="text-gray-500 italic">No answer available</Text>;
     };
 
+    const handleBackFromTest = () => {
+        // Reset all states to initial values
+        setShowDppList(true);
+        setShowResults(false);
+        
+        // Reset all answer states
+        resetAnswers();
+        
+        // Reset user answers for all questions
+        setUserAnswers({});
+        
+        // Reset current question index
+        setCurrentQuestionIndex(0);
+        
+        // Reset selected DPP
+        setSelectedDpp(null);
+        
+        // Clear the timer interval
+        if (timerInterval) {
+          clearInterval(timerInterval);
+          setTimerInterval(null);
+        }
+        
+        // Reset all timer-related states
+        setElapsedTime(0);
+        setStartTime(0);
+        setQuestionTimes({});
+        
+        // Reset WebView heights
+        setWebViewHeights({});
+    };
+
     return (
       <ScrollView className="flex-1">
-        <View className="flex-row items-center p-4">
-          <View style={{ width: 50, alignItems: 'flex-start', zIndex: 10 }}>
-            {!showDppList && (
-              <TouchableOpacity 
-                onPress={handleBackToDppList}
-                className="h-10 w-10 rounded-full items-center justify-center"
-                style={{ backgroundColor: 'transparent' }}
-              >
-                <Text className="text-humpback-500 text-3xl font-bold">←</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-          <View className="flex-1">
-            <Text className="text-xl font-bold text-gray-800 text-center">Daily Practice Problems</Text>
-          </View>
-          <View style={{ width: 50 }}></View> {/* Empty view for balance */}
-        </View>
-        
-        {showDppList ? (
-          // List of DPPs
-          dpps.map((dpp, index) => (
-            <TouchableOpacity 
-              key={dpp._id}
-              onPress={() => handleDppSelect(dpp._id)}
-              className="bg-humpback-500 rounded-[20px] overflow-hidden mb-4 mx-3"
-              style={{
-                borderWidth: 3,
-                borderColor: '#2259A1',
-                borderBottomWidth: 6,
-                borderRightWidth: 6,
-              }}
-            >
-              <View className="p-4">
-                <View className="flex-row justify-between items-center">
-                  <Text className="text-lg font-semibold text-white">
-                    {dpp.title || `DPP ${index + 1}`}
-                  </Text>
-                  {/* Remove this Text component that shows the date */}
-                  {/* <Text className="text-sm text-white/80">
-                    {formatDate(dpp.createdAt)}
-                  </Text> */}
-                </View>
-                <View className="flex-row items-center mt-2">
-                  <Text className="text-white/90 text-sm">
-                    {dpp.dppQuestions.length} questions
-                  </Text>
-                </View>
-              </View>
-            </TouchableOpacity>
-          ))
-        ) : showResults ? (
-          <View className="px-3">
-            {currentDpp && (
-              <View className="mb-4 p-4 bg-humpback-100 rounded-lg">
-                <Text className="text-lg font-semibold text-gray-800">
-                  {currentDpp.title || `DPP ${dpps.findIndex(d => d._id === selectedDpp) + 1}`} - Results
-                </Text>
-              </View>
-            )}
-            
-            <ScrollView className="mb-6">
-              {currentDpp && currentDpp.dppQuestions.map((question, index) => {
-                const userAnswer = userAnswers[question._id] || {};
-                const isCorrect = checkIfAnswerIsCorrect(question, userAnswer);
-                const timeTaken = questionTimes[question._id] || 0;
-                
-                return (
-                  <View key={question._id} className="mb-4 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                    <View className="flex-row justify-between items-start">
-                      <View className="flex-row items-start flex-1 mr-2">
-                        <Text className="text-base font-medium text-gray-800 mr-1">
-                          {question.serialNumber}.
-                        </Text>
-                        <View className="flex-1">
-                          {renderDynamicLatex(question.question, `result-${question._id}`, { 
-                            fontSize: 16, 
-                            color: '#1f2937', 
-                            fontWeight: '500' 
-                          })}
+        {isLoading ? (
+            <View className="flex-1 justify-center items-center">
+                <Text>Loading...</Text> {/* Replace with a spinner if desired */}
+            </View>
+        ) : (
+            <View>
+                {showDppList ? (
+                    // List of DPPs
+                    dpps.map((dpp, index) => (
+                        <TouchableOpacity 
+                            key={dpp._id}
+                            onPress={() => handleDppSelect(dpp._id)}
+                            className="bg-humpback-500 rounded-[20px] overflow-hidden mb-4 mx-3"
+                            style={{
+                                borderWidth: 3,
+                                borderColor: '#2259A1',
+                                borderBottomWidth: 6,
+                                borderRightWidth: 6,
+                            }}
+                        >
+                            <View className="p-4">
+                                <View className="flex-row justify-between items-center">
+                                    <Text className="text-lg font-semibold text-white">
+                                        {dpp.title || `DPP ${index + 1}`}
+                                    </Text>
+                                </View>
+                                <View className="flex-row items-center mt-2">
+                                    <Text className="text-white/90 text-sm">
+                                        {dpp.dppQuestions.length} questions
+                                    </Text>
+                                </View>
+                            </View>
+                        </TouchableOpacity>
+                    ))
+                ) : showResults ? (
+                  <View className="px-3">
+                    {currentDpp && (
+                      <View className="mb-4 p-4 bg-humpback-100 rounded-lg flex-row items-center justify-between">
+                        <TouchableOpacity 
+                          onPress={handleBackFromTest}
+                          className="p-2 rounded-full bg-gray-200"
+                        >
+                          <Ionicons name="arrow-back" size={24} color="#1f2937" />
+                        </TouchableOpacity>
+                        <View className="flex-1 ml-3">
+                          <Text className="text-lg font-semibold text-gray-800">
+                            {currentDpp.title || `DPP ${dpps.findIndex(d => d._id === selectedDpp) + 1}`} - Results
+                          </Text>
                         </View>
                       </View>
-                      <View className={`px-3 py-1 rounded-full ${isCorrect ? 'bg-green-100' : 'bg-red-100'}`}>
-                        <Text className={`font-medium ${isCorrect ? 'text-green-800' : 'text-red-800'}`}>
-                          {isCorrect ? 'Correct' : 'Incorrect'}
-                        </Text>
-                      </View>
-                    </View>
-                    
-                    {/* Display question image if available */}
-                    {question.questionImage && (
-                      <Image 
-                        source={{ uri: question.questionImage }} 
-                        className="w-full h-48 mb-4 rounded-lg"
-                        resizeMode="contain"
-                      />
                     )}
                     
-                    {/* Display time taken */}
-                    <Text className="text-sm text-gray-600 mb-2">
-                      Time taken: {formatTime(timeTaken)}
-                    </Text>
+                    <ResultsSummary />
                     
-                    {/* Display user's answer */}
-                    <View className="mt-3 p-3 bg-gray-50 rounded-lg">
-                      <Text className="text-sm font-medium text-gray-700 mb-1">Your answer:</Text>
-                      {displayUserAnswer(question, userAnswer)}
-                    </View>
-                    
-                    {/* Display correct answer */}
-                    <View className="mt-3 p-3 bg-green-50 rounded-lg">
-                      <Text className="text-sm font-medium text-green-700 mb-1">Correct answer:</Text>
-                      {displayCorrectAnswer(question)}
-                    </View>
-                  </View>
-                );
-              })}
-            </ScrollView>
-          </View>
-        ) : (
-          // Questions for the selected DPP
-          <View>
-            {/* DPP Title */}
-            {currentDpp && (
-              <View className="mb-4 mx-3 p-4 bg-humpback-100 rounded-lg">
-                <Text className="text-lg font-semibold text-gray-800">
-                  {currentDpp.title || `DPP ${dpps.findIndex(d => d._id === selectedDpp) + 1}`}
-                </Text>
-                <View className="flex-row items-center mt-1 justify-between">
-                  <Text className="text-sm text-gray-600">
-                    Question {currentQuestionIndex + 1} of {currentDpp.dppQuestions.length}
-                  </Text>
-                  <Text className="text-sm font-medium text-humpback-500">
-                    Time: {elapsedTime !== undefined ? formatTime(elapsedTime) : "00:00"}
-                  </Text>
-                </View>
-              </View>
-            )}
-            
-            {/* Current Question */}
-            <View className="mt-2 mb-4 mx-3">
-              {currentQuestion && (
-                <View className="mb-6 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                  <View className="flex-row items-start mb-3">
-                    <Text className="text-base font-medium text-gray-800 mr-1">
-                      {currentQuestion.serialNumber}.
-                    </Text>
-                    <View className="flex-1">
-                      {renderDynamicLatex(currentQuestion.question, currentQuestion._id, { 
-                        fontSize: 16, 
-                        color: '#1f2937', 
-                        fontWeight: '500' 
+                    <ScrollView className="mb-6">
+                      {currentDpp && currentDpp.dppQuestions.map((question, index) => {
+                        const userAnswer = userAnswers[question._id] || {};
+                        const isCorrect = checkIfAnswerIsCorrect(question, userAnswer);
+                        const timeTaken = questionTimes[question._id] || 0;
+                        
+                        return (
+                          <View key={question._id} className="mb-4 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                            <View className="flex-row justify-between items-start">
+                              <View className="flex-row items-start flex-1 mr-2">
+                                <Text className="text-base font-medium text-gray-800 mr-1">
+                                  {question.serialNumber}.
+                                </Text>
+                                <View className="flex-1">
+                                  {renderDynamicLatex(question.question, `result-question-${question._id}`, { 
+                                    fontSize: 16, 
+                                    color: '#1f2937', 
+                                    fontWeight: '500' 
+                                  })}
+                                </View>
+                              </View>
+                              <View className={`px-3 py-1 rounded-full ${isCorrect ? 'bg-green-100' : 'bg-red-100'}`}>
+                                <Text className={`font-medium ${isCorrect ? 'text-green-800' : 'text-red-800'}`}>
+                                  {isCorrect ? 'Correct' : 'Incorrect'}
+                                </Text>
+                              </View>
+                            </View>
+                            
+                            {/* Display question image if available */}
+                            {question.questionImage && (
+                              <Image 
+                                source={{ uri: question.questionImage }} 
+                                className="w-full h-48 mb-4 rounded-lg"
+                                resizeMode="contain"
+                              />
+                            )}
+                            
+                            {/* Display time taken */}
+                            <Text className="text-sm text-gray-600 mb-2">
+                              Time taken: {formatTime(timeTaken)}
+                            </Text>
+                            
+                            {/* Display user's answer */}
+                            <View className="mt-3 p-3 bg-gray-50 rounded-lg">
+                              <Text className="text-sm font-medium text-gray-700 mb-1">Your answer:</Text>
+                              {displayUserAnswer(question, userAnswer)}
+                            </View>
+                            
+                            {/* Display correct answer */}
+                            <View className="mt-3 p-3 bg-green-50 rounded-lg">
+                              <Text className="text-sm font-medium text-green-700 mb-1">Correct answer:</Text>
+                              {displayCorrectAnswer(question)}
+                            </View>
+                          </View>
+                        );
                       })}
+                    </ScrollView>
+                  </View>        ) : (          // Questions for the selected DPP
+                  <View>
+                    {/* DPP Title */}
+                    {currentDpp && !showResults && (
+                      <View className="mb-4 mx-3 p-4 bg-humpback-100 rounded-lg flex-row items-center justify-between">
+                        <TouchableOpacity 
+                            onPress={handleBackFromTest}
+                            className="p-2 rounded-full bg-gray-200"
+                        >
+                            <Ionicons name="arrow-back" size={24} color="#1f2937" />
+                        </TouchableOpacity>
+                        <View className="flex-1 ml-3">
+                            <Text className="text-lg font-semibold text-gray-800">
+                                {currentDpp.title || `DPP ${dpps.findIndex(d => d._id === selectedDpp) + 1}`}
+                            </Text>
+                            <View className="flex-row items-center mt-1 justify-between">
+                                <Text className="text-sm text-gray-600">
+                                    Question {currentQuestionIndex + 1} of {currentDpp.dppQuestions.length}
+                                </Text>
+                                <Text className="text-sm font-medium text-humpback-500">
+                                    Time: {elapsedTime !== undefined ? formatTime(elapsedTime) : "00:00"}
+                                </Text>
+                            </View>
+                        </View>
+                      </View>
+                    )}
+                    
+                    {/* Current Question */}
+                    <View className="mt-2 mb-4 mx-3">
+                      {currentQuestion && (
+                        <View 
+                          className="mb-6 bg-white rounded-[20px] overflow-hidden"
+                          style={{
+                            borderWidth: 3,
+                            borderColor: '#e2e8f0',
+                            borderBottomWidth: 6,
+                            borderRightWidth: 6,
+                          }}
+                        >
+                          {/* Question header */}
+                          <View className="bg-humpback-100 p-4 border-b border-gray-200">
+                            <View className="flex-row items-start mb-2">
+                              <Text className="text-base font-medium text-gray-800 mr-1">
+                                {currentQuestion.serialNumber}.
+                              </Text>
+                              <View className="flex-1">
+                                {renderDynamicLatex(currentQuestion.question, currentQuestion._id, { 
+                                  fontSize: 16, 
+                                  color: '#1f2937', 
+                                  fontWeight: '500' 
+                                })}
+                              </View>
+                            </View>
+                            
+                            {currentQuestion.questionImage && (
+                              <Image 
+                                source={{ uri: currentQuestion.questionImage }} 
+                                className="w-full h-48 mt-2 rounded-lg"
+                                resizeMode="contain"
+                              />
+                            )}
+                          </View>
+                          
+                          {/* Answer options */}
+                          <View className="p-4">
+                            {/* Type 1: Objective (Single Choice) Questions */}
+                            {currentQuestion.objectiveoptions && currentQuestion.objectiveoptions.length > 0 && (
+                              <View className="mb-4">
+                                <Text className="text-sm font-medium text-gray-700 mb-2">Select one answer:</Text>
+                                {currentQuestion.objectiveoptions.map((option, index) => (
+                                  <TouchableOpacity 
+                                    key={index} 
+                                    onPress={() => handleSelectOption(option.option)}
+                                    className={`flex-row items-center mb-3 p-3 rounded-[12px] ${
+                                      selectedOption === option.option 
+                                        ? 'bg-humpback-50' 
+                                        : 'bg-gray-50'
+                                    }`}
+                                    style={{
+                                      borderWidth: 2,
+                                      borderColor: selectedOption === option.option ? '#2259A1' : '#e2e8f0',
+                                      borderBottomWidth: 4,
+                                      borderRightWidth: 4,
+                                    }}
+                                  >
+                                    <View className={`h-6 w-6 rounded-full border mr-3 items-center justify-center ${
+                                      selectedOption === option.option 
+                                        ? 'border-humpback-500 bg-humpback-500' 
+                                        : 'border-gray-400'
+                                    }`}>
+                                      {selectedOption === option.option && (
+                                        <View className="h-3 w-3 bg-white rounded-full" />
+                                      )}
+                                    </View>
+                                    <Text className="mr-2 font-medium">{option.option})</Text>
+                                    {option.isImage ? (
+                                      <Image 
+                                        source={{ uri: option.text }} 
+                                        className="w-full h-24 rounded-lg"
+                                        resizeMode="contain"
+                                      />
+                                    ) : (
+                                      <View className="flex-1">
+                                        {renderDynamicLatex(option.text, `${currentQuestion._id}-option-${index}`, { 
+                                          fontSize: 14, 
+                                          color: '#374151' 
+                                        })}
+                                      </View>
+                                    )}
+                                  </TouchableOpacity>
+                                ))}
+                              </View>
+                            )}
+
+                            {/* Type 2: Multiple Choice Questions */}
+                            {currentQuestion.multipleObjective && currentQuestion.multipleObjective.length > 0 && (
+                              <View className="mb-4">
+                                <Text className="text-sm font-medium text-gray-700 mb-2">Select all that apply:</Text>
+                                {currentQuestion.multipleObjective.map((option, index) => (
+                                  <TouchableOpacity 
+                                    key={index} 
+                                    onPress={() => handleSelectMultipleOption(option.option)}
+                                    className={`flex-row items-center mb-3 p-3 rounded-[12px] ${
+                                      selectedMultipleOptions.includes(option.option) 
+                                        ? 'bg-humpback-50' 
+                                        : 'bg-gray-50'
+                                    }`}
+                                    style={{
+                                      borderWidth: 2,
+                                      borderColor: selectedMultipleOptions.includes(option.option) ? '#2259A1' : '#e2e8f0',
+                                      borderBottomWidth: 4,
+                                      borderRightWidth: 4,
+                                    }}
+                                  >
+                                    <View className={`h-6 w-6 rounded border mr-3 items-center justify-center ${
+                                      selectedMultipleOptions.includes(option.option) 
+                                        ? 'border-humpback-500 bg-humpback-500' 
+                                        : 'border-gray-400'
+                                    }`}>
+                                      {selectedMultipleOptions.includes(option.option) && (
+                                        <Text className="text-white text-xs font-bold">✓</Text>
+                                      )}
+                                    </View>
+                                    <Text className="mr-2 font-medium">{option.option})</Text>
+                                    {option.isImage ? (
+                                      <Image 
+                                        source={{ uri: option.text }} 
+                                        className="w-full h-24 rounded-lg"
+                                        resizeMode="contain"
+                                      />
+                                    ) : (
+                                      <View className="flex-1">
+                                        {renderLatex(option.text, { 
+                                          fontSize: 14, 
+                                          color: '#374151' 
+                                        })}
+                                      </View>
+                                    )}
+                                  </TouchableOpacity>
+                                ))}
+                              </View>
+                            )}
+
+                            {/* Type 3: Numeric Answer Questions */}
+                            {currentQuestion.answerNumeric !== undefined && (
+                              <View className="mb-4">
+                                <Text className="text-sm font-medium text-gray-700 mb-2">Enter numeric answer:</Text>
+                                <TextInput
+                                  value={numericAnswer}
+                                  onChangeText={handleNumericAnswerChange}
+                                  placeholder="Enter your answer"
+                                  keyboardType="numeric"
+                                  className="border-2 border-gray-300 rounded-[12px] p-4 mt-1 text-base"
+                                  style={{
+                                    borderBottomWidth: 4,
+                                    borderRightWidth: 4,
+                                  }}
+                                />
+                              </View>
+                            )}
+                          </View>
+                        </View>
+                      )}
+                      
+                      {/* Navigation Buttons */}
+                      {currentDpp && currentDpp.dppQuestions.length > 0 && (
+                        <View className="flex-row justify-between mt-4 mx-3 mb-6">
+                          <TouchableOpacity 
+                            onPress={handlePrevQuestion}
+                            disabled={currentQuestionIndex === 0}
+                            className={`p-3 rounded-[16px] flex-1 mr-2 flex-row justify-center items-center ${
+                              currentQuestionIndex === 0 ? 'bg-gray-300' : 'bg-humpback-500'
+                            }`}
+                            style={{
+                              borderWidth: currentQuestionIndex === 0 ? 2 : 3,
+                              borderColor: currentQuestionIndex === 0 ? '#9ca3af' : '#2259A1',
+                              borderBottomWidth: currentQuestionIndex === 0 ? 4 : 6,
+                              borderRightWidth: currentQuestionIndex === 0 ? 4 : 6,
+                            }}
+                          >
+                            <Text className={`text-center font-medium ${
+                              currentQuestionIndex === 0 ? 'text-gray-500' : 'text-white'
+                            }`}>
+                              Previous
+                            </Text>
+                          </TouchableOpacity>
+                          
+                          {currentQuestionIndex === currentDpp.dppQuestions.length - 1 ? (
+                            <TouchableOpacity 
+                              onPress={handleFinishTest}
+                              className="p-3 rounded-[16px] flex-1 ml-2 bg-green-600 flex-row justify-center items-center"
+                              style={{
+                                borderWidth: 3,
+                                borderColor: '#15803d',
+                                borderBottomWidth: 6,
+                                borderRightWidth: 6,
+                              }}
+                            >
+                              <Text className="text-center font-medium text-white">
+                                Finish Test
+                              </Text>
+                            </TouchableOpacity>
+                          ) : (
+                            <TouchableOpacity 
+                              onPress={handleNextQuestion}
+                              className="p-3 rounded-[16px] flex-1 ml-2 bg-humpback-500 flex-row justify-center items-center"
+                              style={{
+                                borderWidth: 3,
+                                borderColor: '#2259A1',
+                                borderBottomWidth: 6,
+                                borderRightWidth: 6,
+                              }}
+                            >
+                              <Text className="text-center font-medium text-white">
+                                Next
+                              </Text>
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                      )}
                     </View>
                   </View>
-                
-                  {currentQuestion.questionImage && (
-                    <Image 
-                      source={{ uri: currentQuestion.questionImage }} 
-                      className="w-full h-48 mb-4 rounded-lg"
-                      resizeMode="contain"
-                    />
-                  )}
-
-                  {/* Type 1: Objective (Single Choice) Questions */}
-                  {currentQuestion.objectiveoptions && currentQuestion.objectiveoptions.length > 0 && (
-                    <View className="mb-4">
-                      <Text className="text-sm font-medium text-gray-700 mb-2">Single Choice:</Text>
-                      {currentQuestion.objectiveoptions.map((option, index) => (
-                        <TouchableOpacity 
-                          key={index} 
-                          onPress={() => handleSelectOption(option.option)}
-                          className={`flex-row items-center mb-3 p-3 border rounded-lg ${
-                            selectedOption === option.option 
-                              ? 'border-humpback-500 bg-humpback-50' 
-                              : 'border-gray-200'
-                          }`}
-                        >
-                          <View className={`h-6 w-6 rounded-full border mr-3 items-center justify-center ${
-                            selectedOption === option.option 
-                              ? 'border-humpback-500 bg-humpback-500' 
-                              : 'border-gray-400'
-                          }`}>
-                            {selectedOption === option.option && (
-                              <View className="h-3 w-3 bg-white rounded-full" />
-                            )}
-                          </View>
-                          <Text className="mr-2 font-medium">{option.option})</Text>
-                          {option.isImage ? (
-                            <Image 
-                              source={{ uri: option.text }} 
-                              className="w-full h-24 rounded-lg"
-                              resizeMode="contain"
-                            />
-                          ) : (
-                            <View className="flex-1">
-                              {renderDynamicLatex(option.text, `${currentQuestion._id}-option-${index}`, { 
-                                fontSize: 14, 
-                                color: '#374151' 
-                              })}
-                            </View>
-                          )}
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  )}
-
-                  {/* Type 2: Multiple Choice Questions */}
-                  {currentQuestion.multipleObjective && currentQuestion.multipleObjective.length > 0 && (
-                    <View className="mb-4">
-                      <Text className="text-sm font-medium text-gray-700 mb-2">Multiple Choice:</Text>
-                      {currentQuestion.multipleObjective.map((option, index) => (
-                        <TouchableOpacity 
-                          key={index} 
-                          onPress={() => handleSelectMultipleOption(option.option)}
-                          className={`flex-row items-center mb-3 p-3 border rounded-lg ${
-                            selectedMultipleOptions.includes(option.option) 
-                              ? 'border-humpback-500 bg-humpback-50' 
-                              : 'border-gray-200'
-                          }`}
-                        >
-                          <View className={`h-6 w-6 rounded border mr-3 items-center justify-center ${
-                            selectedMultipleOptions.includes(option.option) 
-                              ? 'border-humpback-500 bg-humpback-500' 
-                              : 'border-gray-400'
-                          }`}>
-                            {selectedMultipleOptions.includes(option.option) && (
-                              <Text className="text-white text-xs font-bold">✓</Text>
-                            )}
-                          </View>
-                          <Text className="mr-2 font-medium">{option.option})</Text>
-                          {option.isImage ? (
-                            <Image 
-                              source={{ uri: option.text }} 
-                              className="w-full h-24 rounded-lg"
-                              resizeMode="contain"
-                            />
-                          ) : (
-                            <View className="flex-1">
-                              {renderLatex(option.text, { 
-                                fontSize: 14, 
-                                color: '#374151' 
-                              })}
-                            </View>
-                          )}
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  )}
-
-                  {/* Type 3: Numeric Answer Questions */}
-                  {currentQuestion.answerNumeric !== undefined && (
-                    <View className="mb-4">
-                      <Text className="text-sm font-medium text-gray-700 mb-2">Numeric Answer:</Text>
-                      <TextInput
-                        value={numericAnswer}
-                        onChangeText={handleNumericAnswerChange}
-                        placeholder="Enter your answer"
-                        keyboardType="numeric"
-                        className="border border-gray-300 rounded-lg p-4 mt-1 text-base"
-                      />
-                    </View>
-                  )}
-                </View>
-              )}
-              
-              {/* Navigation Buttons */}
-              {currentDpp && currentDpp.dppQuestions.length > 0 && (
-                <View className="flex-row justify-between mt-4 mx-3 mb-6">
-                  <TouchableOpacity 
-                    onPress={handlePrevQuestion}
-                    disabled={currentQuestionIndex === 0}
-                    className={`p-3 rounded-full flex-1 mr-2 flex-row justify-center items-center ${
-                      currentQuestionIndex === 0 ? 'bg-gray-300' : 'bg-humpback-500'
-                    }`}
-                  >
-                    <Text className={`text-center font-medium ${
-                      currentQuestionIndex === 0 ? 'text-gray-500' : 'text-white'
-                    }`}>
-                      Previous
-                    </Text>
-                  </TouchableOpacity>
-                  
-                  {currentQuestionIndex === currentDpp.dppQuestions.length - 1 ? (
-                    <TouchableOpacity 
-                      onPress={handleFinishTest}
-                      className="p-3 rounded-full flex-1 ml-2 bg-green-600 flex-row justify-center items-center"
-                    >
-                      <Text className="text-center font-medium text-white">
-                        Finish Test
-                      </Text>
-                    </TouchableOpacity>
-                  ) : (
-                    <TouchableOpacity 
-                      onPress={handleNextQuestion}
-                      className="p-3 rounded-full flex-1 ml-2 bg-humpback-500 flex-row justify-center items-center"
-                    >
-                      <Text className="text-center font-medium text-white">
-                        Next
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              )}
+                )}
             </View>
-          </View>
         )}
       </ScrollView>
     )

@@ -5,22 +5,27 @@
   },
   "build": {
     "development": {
-      "developmentClient": true,
-      "distribution": "internal"
-    },
-    "preview": {
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "ios": {
+        "simulator": true
+      },
+      "env": {
+        "npm_config_legacy_peer_deps": "true"
       }
     },
-    "preview2": {
-      "android": {
-        "gradleCommand": ":app:assembleRelease"
+    "preview": {
+      "distribution": "internal",
+      "env": {
+        "npm_config_legacy_peer_deps": "true"
       }
     },
     "production": {
-      "autoIncrement": true
+      "env": {
+        "npm_config_legacy_peer_deps": "true"
+      }
     }
   },
   "submit": {

@@ -260,7 +260,22 @@ const VideoLecture: React.FC<VideoLectureProps> = ({ lectures }) => {
                                             {lecture?.title || `Lecture ${index + 1}`}
                                         </Text>
                                     </View>
-                                    <View className="flex-row items-center">
+                                    <TouchableOpacity 
+                                        onPress={() => {
+                                            if (lecture?.teacher?._id) {
+                                                router.push({
+                                                    pathname: './teacherdetails',
+                                                    params: { 
+                                                        teacherId: lecture.teacher._id ,
+                                                        name: lecture.teacher.name,
+                                                        bio: lecture.teacher.bio,
+                                                        imageUrl: lecture.teacher.imageUrl,
+                                                    }
+                                                })
+                                            }
+                                        }}
+                                        className="flex-row items-center"
+                                    >
                                         {lecture?.teacher?.imageUrl ? (
                                             <Image 
                                                 source={{ uri: lecture.teacher.imageUrl }}
@@ -278,8 +293,7 @@ const VideoLecture: React.FC<VideoLectureProps> = ({ lectures }) => {
                                         <Text className="text-white/90 ml-2 text-sm font-medium">
                                             {lecture?.teacher?.name || 'Unknown Teacher'}
                                         </Text>
-                                    </View>
-                                </View>
+                                    </TouchableOpacity>                                </View>
                                 {lecture?.description && (
                                     <View className="flex-row items-start mt-2">
                                         <MaterialIcons name="description" size={16} color="rgba(255,255,255,0.8)" style={{ marginRight: 8, marginTop: 2 }} />

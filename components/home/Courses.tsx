@@ -5,14 +5,14 @@ import { useRef, useEffect } from 'react';
 const courseCardBase = "p-5 rounded-2xl shadow-lg justify-center items-center min-h-[22%] transform perspective-1000 backface-visible-hidden";
 
 const cardStyles = [
-    'bg-cardinal-500',
+    'bg-blue-600',
     'bg-fox-500',
     'bg-beetle-500',
     'bg-humpback-500'
 ];
 
 const borderStyles = [
-    '#FF1818',
+    '#1E40AF',
     '#CC7800',
     '#B54FFF',
     '#2259A1'
@@ -217,7 +217,7 @@ export default function Courses() {
                 </View>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row">
                     {[
-                        { name: 'Physics', icon: 'atom' as const, students: '2.5k', color: '#FF1818' },
+                        { name: 'Physics', icon: 'atom' as const, students: '2.5k', color: '#1E40AF' },
                         { name: 'Chemistry', icon: 'flask' as const, students: '2.1k', color: '#CC7800' },
                         { name: 'Mathematics', icon: 'calculator' as const, students: '3.2k', color: '#B54FFF' },
                         { name: 'Biology', icon: 'dna' as const, students: '1.8k', color: '#2259A1' }

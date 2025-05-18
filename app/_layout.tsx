@@ -143,6 +143,7 @@ function RootLayoutContent({ isSignedIn, setIsSignedIn, isLoading, setIsLoading,
             animation: "slide_from_bottom",
           }}
         />
+        <Stack.Screen name='teacherdetails' options={{headerShown: false}}/>
       </Stack>
     </AuthContext.Provider>
   );

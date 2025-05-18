@@ -18,14 +18,14 @@ interface Course {
 }
 
 const cardStyles = [
-    'bg-cardinal-500',
+    'bg-blue-600',
     'bg-fox-500',
     'bg-beetle-500',
     'bg-humpback-500'
 ]
 
 const borderStyles = [
-    '#FF1818',
+    '#1E40AF',
     '#CC7800',
     '#B54FFF',
     '#2259A1'
@@ -39,7 +39,6 @@ export default function CoursesList() {
     const { studentData } = useContext(StudentContext);
     const router = useRouter();
 
-    // console.log(studentData?.purchases[1]?.product?.subjects);
     useEffect(() => {
         if (studentData && studentData.purchases) {
             const purchasedCourses = studentData.purchases
