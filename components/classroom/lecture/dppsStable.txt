@@ -110,6 +110,7 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
       }
     }, [startTime]);
 
+
     const handleDppSelect = (dppId: string) => {
         setSelectedDpp(dppId);
         setShowDppList(false);
@@ -569,7 +570,7 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
         );
       }
       
-      // Display correct numeric answer
+      // Display correct numeric answer - ENHANCED VISIBILITY
       if (question.answerNumeric !== undefined) {
         let displayValue = '';
         
@@ -581,7 +582,11 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
           displayValue = String(question.answerNumeric);
         }
         
-        return <Text className="text-green-800">{displayValue}</Text>;
+        return (
+          <View className="bg-green-50 p-3 rounded-lg border border-green-200">
+            <Text className="text-green-800 text-lg font-bold">{displayValue}</Text>
+          </View>
+        );
       }
       
       return <Text className="text-gray-500 italic">No answer available</Text>;
@@ -976,7 +981,9 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
     };
 
 
-    const displayDynamicCorrectAnswer = (question: DppQuestion) => {
+    const displayDynamicCorrectAnswer = (
+      question: DppQuestion
+    ) => {
       // Display correct single choice answer
       if (question.answerObjective && question.objectiveoptions) {
         const option = question.objectiveoptions.find(opt => opt.option === question.answerObjective);
@@ -1039,7 +1046,7 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
         );
       }
       
-      // Display correct numeric answer
+      // Display correct numeric answer - ENHANCED VISIBILITY
       if (question.answerNumeric !== undefined) {
         let displayValue = '';
         
@@ -1051,7 +1058,11 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
           displayValue = String(question.answerNumeric);
         }
         
-        return <Text className="text-green-800">{displayValue}</Text>;
+        return (
+          <View className="bg-green-50 p-3 rounded-lg border border-green-200">
+            <Text className="text-green-800 text-lg font-bold">{displayValue}</Text>
+          </View>
+        );
       }
       
       return <Text className="text-gray-500 italic">No answer available</Text>;
@@ -1196,7 +1207,10 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
                             {/* Display correct answer */}
                             <View className="mt-3 p-3 bg-green-50 rounded-lg">
                               <Text className="text-sm font-medium text-green-700 mb-1">Correct answer:</Text>
-                              {displayCorrectAnswer(question)}
+                              {question.answerNumeric !== undefined && (
+                                <Text className="">{String(question.answerNumeric)}</Text>
+                              )}
+                              {displayDynamicCorrectAnswer(question)}
                             </View>
                           </View>
                         );

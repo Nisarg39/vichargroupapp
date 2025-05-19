@@ -1,2 +1,3 @@
-To build preview app on eas - eas build -p android --profile preview
-build android app offline - eas build --platform android --local
+execute before building app offline or on eas - npx expo prebuild --clean
+To build preview app on eas - eas build -p android --profile preview --clear-cache
+build android app offline - eas build -p android --profile preview  --local --clear-cache

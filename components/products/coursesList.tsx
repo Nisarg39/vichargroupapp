@@ -1,127 +1,29 @@
-import { View, Text, Image, Dimensions, TouchableOpacity, FlatList } from 'react-native'
-import { useState, useRef } from 'react'
+import { View, Text, Image, Dimensions, TouchableOpacity, FlatList, Linking } from 'react-native'
+import { useState, useRef, useEffect } from 'react'
 import Animated, { useAnimatedStyle, withSpring, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated'
 import { FontAwesome5 } from '@expo/vector-icons'
-
-const products = {
-    courses: {
-        academic: [
-            {
-                id: 1,
-                name: 'JEE',
-                image: 'https://cdn-icons-png.flaticon.com/256/11483/11483670.png',
-                price: 23000,
-                discount: 20,
-                lessons: '200+',
-                students: '50K+'
-            },
-            {
-                id: 2,
-                name: 'NEET',
-                image: 'https://cdn-icons-png.flaticon.com/256/8662/8662421.png',
-                price: 23000,
-                discount: 15,
-                lessons: '180+',
-                students: '45K+'
-            },
-            {
-                id: 3,
-                name: 'CET',
-                image: 'https://cdn-icons-png.flaticon.com/256/8663/8663461.png',
-                price: 23000,
-                discount: 25,
-                lessons: '150+',
-                students: '30K+'
-            },
-            {
-                id: 4,
-                name: 'FOUNDATION',
-                image: 'https://cdn-icons-png.flaticon.com/256/7139/7139119.png',
-                price: 23000,
-                discount: 10,
-                lessons: '120+',
-                students: '25K+'
-            }
-        ],
-        stockMarket: [
-            {
-                id: 8,
-                name: 'Price Action',
-                image: 'https://cdn-icons-png.flaticon.com/256/16835/16835338.png',
-                price: 40000,
-                discount: 30,
-                lessons: '100+',
-                students: '20K+'
-            },
-            {
-                id: 9,
-                name: 'RSI & Price Action',
-                image: 'https://cdn-icons-png.flaticon.com/256/5784/5784099.png',
-                price: 40000,
-                discount: 20,
-                lessons: '90+',
-                students: '15K+'
-            },
-            {
-                id: 10,
-                name: 'Option Trading',
-                image: 'https://cdn-icons-png.flaticon.com/256/16835/16835338.png',
-                price: 40000,
-                discount: 15,
-                lessons: '80+',
-                students: '10K+'
-            }
-        ]
-    },
-    testSeries: [
-        {
-            id: 5,
-            name: 'JEE Mock Tests',
-            image: 'https://cdn-icons-png.flaticon.com/256/16835/16835338.png',
-            price: 5000,
-            discount: 10,
-            lessons: '50+',
-            students: '40K+'
-        },
-        {
-            id: 6,
-            name: 'NEET Practice Tests',
-            image: 'https://cdn-icons-png.flaticon.com/256/5784/5784099.png',
-            price: 5000,
-            discount: 15,
-            lessons: '40+',
-            students: '35K+'
-        },
-        {
-            id: 7,
-            name: 'CET Test Series',
-            image: 'https://cdn-icons-png.flaticon.com/256/16835/16835338.png',
-            price: 5000,
-            discount: 20,
-            lessons: '30+',
-            students: '25K+'
-        }
-    ]
-}
+import axios from 'axios'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 interface Product {
-    id: number
+    _id: string
     name: string
     image: string
     price: number
-    discount: number
+    discountPrice: number
     lessons: string
     students: string
+    pageParameters: string
 }
 
 interface Section {
     title: string
     data: Product[]
-    icon: string
 }
 
 export default function CoursesList() {
     const [expandedSection, setExpandedSection] = useState<string>('')
+    const [sections, setSections] = useState<Section[]>([])
     const screenWidth = Dimensions.get('window').width
     const cardWidth = screenWidth - 32
     const scaleValue = useSharedValue(1)
@@ -132,10 +34,36 @@ export default function CoursesList() {
         }
     })
 
+    async function getSegments(){
+        const token = await AsyncStorage.getItem('token')
+        const response = await axios.post(`${process.env.EXPO_PUBLIC_API_URL}/api/app/signin/getSegments`,{
+            token: token
+          },{
+            headers: {
+              'Content-Type': 'multipart/form-data',
+              'Accept': 'application/json',
+            }
+          });
+
+        //   console.log(response.data.segments[0])
+
+        const formattedSections = response.data.segments.map((segment: any) => ({
+            title: segment.name,
+            data: segment.products
+        }));
+        
+        setSections(formattedSections);
+        return response.data.segments;
+    }
+
+    useEffect(() => {
+        getSegments()
+    }, [])
+
     const renderItem = ({ item, index }: { item: Product; index: number }) => {
         const cardStyle = cardStyles[index % 4]
         const borderStyle = borderStyles[index % 4]
-        const discountedPrice = item.price - (item.price * item.discount / 100)
+        const discount = ((item.price - item.discountPrice) / item.price) * 100
 
         scaleValue.value = withRepeat(
             withSequence(
@@ -178,28 +106,17 @@ export default function CoursesList() {
                             </View>
                         </View>
                         <View className="flex-1 ml-4">
-                            <Text numberOfLines={1} className="text-base font-extrabold text-white">{item.name}</Text>
-                            
-                            <View className="flex-row justify-between bg-white/10 rounded-lg p-2 mt-2">
-                                <View className="flex-1 items-center">
-                                    <Text className="text-[10px] text-white/80">Lessons</Text>
-                                    <Text className="text-xs text-white font-semibold">{item.lessons}</Text>
-                                </View>
-                                <View className="flex-1 items-center border-l border-white/20">
-                                    <Text className="text-[10px] text-white/80">Students</Text>
-                                    <Text className="text-xs text-white font-semibold">{item.students}</Text>
-                                </View>
-                            </View>
+                            <Text numberOfLines={2} className="text-base font-extrabold text-white leading-5 -mt-2">{item.name}</Text>
                         </View>
                         
                         <View className="ml-4 items-end">
                             <View className="flex-row items-center justify-between">
                                 <Text className="text-xs text-white/60 line-through mr-2">₹{item.price}</Text>
                                 <Animated.View style={animatedStyle} className="bg-white/20 rounded-lg px-1.5 py-0.5">
-                                    <Text className="text-xs text-white font-bold">{item.discount}% OFF</Text>
+                                    <Text className="text-xs text-white font-bold">{Math.round(discount)}% OFF</Text>
                                 </Animated.View>
                             </View>
-                            <Text className="text-xl font-bold text-white mt-1">₹{discountedPrice}</Text>
+                            <Text className="text-xl font-bold text-white mt-1">₹{item.discountPrice}</Text>
                             
                             <TouchableOpacity 
                                 className="bg-white rounded-xl mt-2"
@@ -222,6 +139,8 @@ export default function CoursesList() {
                                         style: { transform: [{ translateY: 0 }], borderBottomWidth: 4, borderRightWidth: 4 }
                                     })
                                 }}
+                                // onPress={() => Linking.openURL(`${process.env.EXPO_PUBLIC_API_URL}/${item.pageParameters}`)}
+                                onPress={() => Linking.openURL(`${process.env.EXPO_PUBLIC_API_URL}`)}
                             >
                                 <Text className="text-black font-bold text-xs px-4 py-2 text-center">Enroll Now</Text>
                             </TouchableOpacity>
@@ -246,24 +165,6 @@ export default function CoursesList() {
         '#2259A1'
     ]
 
-    const sections: Section[] = [
-        { 
-            title: 'Academic Courses', 
-            data: products.courses.academic,
-            icon: 'https://cdn-icons-png.flaticon.com/256/12583/12583400.png'
-        },
-        { 
-            title: 'Stock Market Courses', 
-            data: products.courses.stockMarket,
-            icon: 'https://cdn-icons-png.flaticon.com/256/11752/11752764.png'
-        },
-        { 
-            title: 'Test Series', 
-            data: products.testSeries,
-            icon: 'https://cdn-icons-png.flaticon.com/256/8021/8021882.png'
-        }
-    ]
-
     return (
         <FlatList
             data={sections}
@@ -275,9 +176,11 @@ export default function CoursesList() {
                         activeOpacity={1}
                     >
                         <View className="flex-row items-center">
-                            <Image 
-                                source={{ uri: section.icon }} 
-                                className="w-10 h-10 mr-3"
+                            <FontAwesome5 
+                                name="book"
+                                size={20} 
+                                color="white" 
+                                style={{ marginRight: 10 }} 
                             />
                             <Text className="text-lg font-bold text-white tracking-wider">{section.title}</Text>
                         </View>
@@ -287,7 +190,7 @@ export default function CoursesList() {
                         <FlatList
                             data={section.data}
                             renderItem={renderItem}
-                            keyExtractor={(item: Product) => item.id.toString()}
+                            keyExtractor={(item: Product) => item._id.toString()}
                             contentContainerStyle={{ paddingTop: 16 }}
                         />
                     )}
