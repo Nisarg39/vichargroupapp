@@ -1,5 +1,16 @@
 import React, { useState } from 'react'
-import { View, Text, TouchableOpacity, Image, Dimensions, Modal, ScrollView } from 'react-native'
+import { 
+  View, 
+  Text, 
+  TouchableOpacity, 
+  Image, 
+  ImageStyle,
+  Dimensions, 
+  Modal, 
+  ScrollView, 
+  Platform,
+  StatusBar 
+} from 'react-native'
 import { useRouter } from 'expo-router'
 import { FontAwesome, MaterialIcons, Ionicons } from '@expo/vector-icons'
 
@@ -8,13 +19,14 @@ interface VideoLectureProps {
 }
 
 const VideoLecture: React.FC<VideoLectureProps> = ({ lectures }) => {
-    const { width: screenWidth } = Dimensions.get('window');
+    const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
     const router = useRouter();
     const [pressedStates, setPressedStates] = useState<{[key: string]: boolean}>({});
     const [sortBy, setSortBy] = useState<'lectures' | 'teacher'>('lectures');
     const [selectedTeacher, setSelectedTeacher] = useState<string | null>(null);
     const [showSortDropdown, setShowSortDropdown] = useState(false);
 
+    // console.log(lectures[0].serialNumber)
     const getYoutubeVideoId = (url: string) => {
         if (!url) return null;
         
@@ -24,11 +36,90 @@ const VideoLecture: React.FC<VideoLectureProps> = ({ lectures }) => {
         return (match && match[2].length === 11) ? match[2] : null;
     };
 
+    const calculateThumbnailDimensions = (): ImageStyle => {
+        const baseHeight = screenWidth * 0.35;
+        const minHeight = 180; // Minimum height to prevent cropping
+        const maxHeight = 250; // Maximum height to maintain aspect ratio
+
+        return {
+            width: '100%',
+            height: Math.min(Math.max(baseHeight, minHeight), maxHeight),
+            borderTopLeftRadius: 16,
+            borderTopRightRadius: 16
+        };
+    };
+
+    const getSafeAreaInsets = () => {
+        const statusBarHeight = StatusBar.currentHeight || 0;
+        const bottomInset = Platform.OS === 'ios' ? 20 : 0;
+        
+        return {
+            top: statusBarHeight,
+            bottom: bottomInset
+        };
+    };
+
+    const getResponsiveStyles = () => {
+        const safeArea = getSafeAreaInsets();
+        
+        return {
+            container: {
+                paddingTop: safeArea.top,
+                paddingBottom: safeArea.bottom
+            },
+            lectureItem: {
+                marginBottom: screenWidth * 0.04,
+                paddingHorizontal: 15
+            }
+        };
+    };
+
+    const renderVideoThumbnail = (lecture: any, thumbnailUrl: string) => {
+        return (
+            <View style={{ position: 'relative' }}>
+                <Image 
+                    source={{ uri: thumbnailUrl }}
+                    style={calculateThumbnailDimensions()}
+                    resizeMode="cover"
+                />
+                <View 
+                    style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        backgroundColor: 'rgba(0,0,0,0.4)'
+                    }}
+                >
+                    <View 
+                        style={{
+                            backgroundColor: 'rgba(255,255,255,0.25)',
+                            borderRadius: 50,
+                            padding: 15
+                        }}
+                    >
+                        <FontAwesome name="play" size={24} color="white" />
+                    </View>
+                </View>
+            </View>
+        );
+    };
+
     const getYoutubeThumbnail = (videoUrl: string) => {
         const videoId = getYoutubeVideoId(videoUrl);
-        if (!videoId) return null;
+        return videoId 
+            ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` 
+            : null;
+    };
+
+    const getFallbackThumbnail = (lecture: any) => {
+        const thumbnailUrl = getYoutubeThumbnail(lecture?.videoUrl);
+        const fallbackImage = 'https://via.placeholder.com/300x169.png?text=Lecture+Thumbnail';
         
-        return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+        return thumbnailUrl || fallbackImage;
     };
 
     const handlePressIn = (lectureId: string) => {
@@ -73,13 +164,15 @@ const VideoLecture: React.FC<VideoLectureProps> = ({ lectures }) => {
 
     const sortedLectures = [...lectures].sort((a, b) => {
         if (sortBy === 'lectures') {
-            return a.title?.localeCompare(b.title) || 0;
+            // If sorting by lectures, use serialNumber as primary sort
+            return (a.serialNumber || 0) - (b.serialNumber || 0);
         } else {
             if (selectedTeacher) {
                 if (a.teacher?.name === selectedTeacher && b.teacher?.name !== selectedTeacher) return -1;
                 if (a.teacher?.name !== selectedTeacher && b.teacher?.name === selectedTeacher) return 1;
             }
-            return a.teacher?.name?.localeCompare(b.teacher?.name) || 0;
+            // If sorting by teacher, use serialNumber as secondary sort
+            return (a.serialNumber || 0) - (b.serialNumber || 0);
         }
     });
 
@@ -197,7 +290,7 @@ const VideoLecture: React.FC<VideoLectureProps> = ({ lectures }) => {
 
             {sortedLectures?.map((lecture, index) => {
                 if (!lecture) return null;
-                const thumbnailUrl = getYoutubeThumbnail(lecture?.videoUrl);
+                const thumbnailUrl = getFallbackThumbnail(lecture);
                 const isPressed = pressedStates[lecture?._id] || false;
                 
                 return (
@@ -217,45 +310,14 @@ const VideoLecture: React.FC<VideoLectureProps> = ({ lectures }) => {
                             onPressIn={() => handlePressIn(lecture?._id)}
                             onPressOut={() => handlePressOut(lecture?._id)}
                         >
-                            {thumbnailUrl ? (
-                                <View>
-                                    <Image 
-                                        source={{ uri: thumbnailUrl }}
-                                        style={{ 
-                                            width: '100%', 
-                                            height: screenWidth * 0.35,
-                                            borderTopLeftRadius: 16,
-                                            borderTopRightRadius: 16
-                                        }}
-                                        resizeMode="cover"
-                                    />
-                                    <View 
-                                        style={{
-                                            position: 'absolute',
-                                            top: 0,
-                                            left: 0,
-                                            right: 0,
-                                            bottom: 0,
-                                            justifyContent: 'center',
-                                            alignItems: 'center',
-                                            backgroundColor: 'rgba(0,0,0,0.4)'
-                                        }}
-                                    >
-                                        <View style={{
-                                            backgroundColor: 'rgba(255,255,255,0.25)',
-                                            borderRadius: 50,
-                                            padding: 15
-                                        }}>
-                                            <FontAwesome name="play" size={24} color="white" />
-                                        </View>
-                                    </View>
-                                </View>
-                            ) : null}
+                            {renderVideoThumbnail(lecture, thumbnailUrl)}
                             
                             <View className="p-4">
                                 <View className="flex-row items-center justify-between">
                                     <View className="flex-row items-center flex-1 mr-2">
-                                        <MaterialIcons name="video-library" size={20} color="white" style={{ marginRight: 8 }} />
+                                        <Text className="text-white font-bold mr-2">
+                                            #{lecture?.serialNumber || index + 1}
+                                        </Text>
                                         <Text className="text-white font-bold text-lg flex-1">
                                             {lecture?.title || `Lecture ${index + 1}`}
                                         </Text>

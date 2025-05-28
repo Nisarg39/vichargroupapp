@@ -3,6 +3,8 @@ import { View, Text, ScrollView, Image, TouchableOpacity, TextInput } from 'reac
 import { Ionicons } from '@expo/vector-icons';
 import { renderLatex } from '@/utils/textUtils';
 import { WebView } from 'react-native-webview';
+import { Alert } from 'react-native';
+import { BackHandler } from 'react-native';
 
 interface DppQuestion {
   _id: string;
@@ -57,7 +59,7 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
     const [startTime, setStartTime] = useState<number>(0);
     const [elapsedTime, setElapsedTime] = useState<number>(0);
     const [questionTimes, setQuestionTimes] = useState<{[questionId: string]: number}>({});
-    const [timerInterval, setTimerInterval] = useState<NodeJS.Timeout | null>(null);
+    const [timerInterval, setTimerInterval] = useState<number | null>(null);
     const [webViewHeights, setWebViewHeights] = useState<{[questionId: string]: number}>({});
 
     // Add this helper function to format time
@@ -1069,36 +1071,186 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
     };
 
     const handleBackFromTest = () => {
-        // Reset all states to initial values
-        setShowDppList(true);
-        setShowResults(false);
-        
-        // Reset all answer states
-        resetAnswers();
-        
-        // Reset user answers for all questions
-        setUserAnswers({});
-        
-        // Reset current question index
-        setCurrentQuestionIndex(0);
-        
-        // Reset selected DPP
-        setSelectedDpp(null);
-        
-        // Clear the timer interval
-        if (timerInterval) {
-          clearInterval(timerInterval);
-          setTimerInterval(null);
+        // If results are already shown, directly go back to DPP list
+        if (showResults) {
+            setShowDppList(true);
+            setShowResults(false);
+            
+            // Reset all answer states
+            resetAnswers();
+            
+            // Reset user answers for all questions
+            setUserAnswers({});
+            
+            // Reset current question index
+            setCurrentQuestionIndex(0);
+            
+            // Reset selected DPP
+            setSelectedDpp(null);
+            
+            // Clear the timer interval
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                setTimerInterval(null);
+            }
+            
+            // Reset all timer-related states
+            setElapsedTime(0);
+            setStartTime(0);
+            setQuestionTimes({});
+            
+            // Reset WebView heights
+            setWebViewHeights({});
+            
+            return;
         }
-        
-        // Reset all timer-related states
-        setElapsedTime(0);
-        setStartTime(0);
-        setQuestionTimes({});
-        
-        // Reset WebView heights
-        setWebViewHeights({});
+
+        // If test is in progress, show confirmation dialog
+        Alert.alert(
+            'Finish Test',
+            'Are you sure you want to end the test? This will submit your current answers and show the results.',
+            [
+                {
+                    text: 'Cancel',
+                    style: 'cancel',
+                },
+                {
+                    text: 'Finish',
+                    style: 'destructive',
+                    onPress: () => {
+                        // Save the answer for the current question
+                        if (currentQuestion) {
+                            const currentAnswers = { ...userAnswers };
+                            
+                            // Initialize the answer object for this question if it doesn't exist
+                            if (!currentAnswers[currentQuestion._id]) {
+                                currentAnswers[currentQuestion._id] = {};
+                            }
+                            
+                            // Only update properties that have values
+                            if (selectedOption !== null) {
+                                currentAnswers[currentQuestion._id].selectedOption = selectedOption;
+                            }
+                            
+                            if (selectedMultipleOptions.length > 0) {
+                                currentAnswers[currentQuestion._id].selectedMultipleOptions = selectedMultipleOptions;
+                            }
+                            
+                            if (numericAnswer !== '') {
+                                currentAnswers[currentQuestion._id].numericAnswer = numericAnswer;
+                            }
+                            
+                            // Update the state
+                            setUserAnswers(currentAnswers);
+                            
+                            // Save time for the last question
+                            setQuestionTimes(prev => ({
+                                ...prev,
+                                [currentQuestion._id]: elapsedTime
+                            }));
+                        }
+                        
+                        // Clear the timer interval
+                        if (timerInterval) {
+                            clearInterval(timerInterval);
+                            setTimerInterval(null);
+                        }
+                        
+                        // Reset states
+                        setShowDppList(false);
+                        setShowResults(true);
+                    }
+                }
+            ]
+        );
     };
+
+    useEffect(() => {
+        // Only add back handler when a DPP is selected and not in results
+        if (selectedDpp && !showResults && !showDppList) {
+            const backHandler = BackHandler.addEventListener(
+                'hardwareBackPress',
+                () => {
+                    // Show confirmation dialog
+                    Alert.alert(
+                        'Finish Test',
+                        'Are you sure you want to end the test? This will submit your current answers and show the results.',
+                        [
+                            {
+                                text: 'Cancel',
+                                style: 'cancel',
+                                onPress: () => false // Prevent default back action
+                            },
+                            {
+                                text: 'Finish',
+                                style: 'destructive',
+                                onPress: () => {
+                                    // Save the current question's answer
+                                    if (currentQuestion) {
+                                        const currentAnswers = { ...userAnswers };
+                                        
+                                        // Initialize the answer object for this question if it doesn't exist
+                                        if (!currentAnswers[currentQuestion._id]) {
+                                            currentAnswers[currentQuestion._id] = {};
+                                        }
+                                        
+                                        // Only update properties that have values
+                                        if (selectedOption !== null) {
+                                            currentAnswers[currentQuestion._id].selectedOption = selectedOption;
+                                        }
+                                        
+                                        if (selectedMultipleOptions.length > 0) {
+                                            currentAnswers[currentQuestion._id].selectedMultipleOptions = selectedMultipleOptions;
+                                        }
+                                        
+                                        if (numericAnswer !== '') {
+                                            currentAnswers[currentQuestion._id].numericAnswer = numericAnswer;
+                                        }
+                                        
+                                        // Update the state
+                                        setUserAnswers(currentAnswers);
+                                        
+                                        // Save time for the last question
+                                        setQuestionTimes(prev => ({
+                                            ...prev,
+                                            [currentQuestion._id]: elapsedTime
+                                        }));
+                                    }
+                                    
+                                    // Clear the timer interval
+                                    if (timerInterval) {
+                                        clearInterval(timerInterval);
+                                        setTimerInterval(null);
+                                    }
+                                    
+                                    // Reset states
+                                    setShowDppList(false);
+                                    setShowResults(true);
+                                    
+                                    return true; // Prevent default back action
+                                }
+                            }
+                        ]
+                    );
+                    
+                    return true; // Prevent default back action
+                }
+            );
+
+            return () => backHandler.remove();
+        } else if (showResults) {
+            // When results are shown, allow direct back navigation
+            const backHandler = BackHandler.addEventListener(
+                'hardwareBackPress',
+                () => {
+                    handleBackFromTest(); // This will now directly go back to DPP list
+                    return true;
+                }
+            );
+
+            return () => backHandler.remove();
+        }
+    }, [selectedDpp, showResults, showDppList, currentQuestion, userAnswers, selectedOption, selectedMultipleOptions, numericAnswer, elapsedTime, timerInterval]);
 
     return (
       <ScrollView className="flex-1">

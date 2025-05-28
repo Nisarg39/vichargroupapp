@@ -104,6 +104,7 @@ export default function SignInScreen() {
     const [name, setName] = useState('')
     const [email, setEmail] = useState('')
     const [isSaving, setIsSaving] = useState(false)
+    const [otpError, setOtpError] = useState('');
 
     const isValidEmail = (email: string) => {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -146,38 +147,56 @@ export default function SignInScreen() {
     }
 
     const handleVerifyOTP = async() => {
-        if (otp.length === 4) {
-            setIsVerifyingOTP(true)
-            try {
-                const otpResponse = await axios.post(`${process.env.EXPO_PUBLIC_API_URL}/api/app/signin/verifyOtp`, {
-                    mobile: mobileNumber,
-                    otp: otp
-                },{
-                    headers: {
-                        'Content-Type': 'multipart/form-data',
-                        'Accept': 'application/json',
-                    }
-                })
-                
-                // if verified
-                if (otpResponse.data.success == true && otpResponse.data.student.isVerified == true) {
-                    AsyncStorage.setItem('token', otpResponse.data.student.token)
+        // Reset previous error
+        setOtpError('');
+
+        // Validate OTP length
+        if (otp.length !== 4) {
+            setOtpError('Please enter a 4-digit OTP');
+            return;
+        }
+
+        setIsVerifyingOTP(true)
+        try {
+            const otpResponse = await axios.post(`${process.env.EXPO_PUBLIC_API_URL}/api/app/signin/verifyOtp`, {
+                mobile: mobileNumber,
+                otp: otp
+            },{
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                    'Accept': 'application/json',
+                }
+            })
+
+            // Comprehensive verification scenarios
+            if (otpResponse.data.success === true) {
+                if (otpResponse.data.student.isVerified === true) {
+                    await AsyncStorage.setItem('token', otpResponse.data.student.token)
                     setVerificationStatus('success')
                     setStatusMessage('OTP verified successfully!')
                     setIsSignedIn(true)
-                } 
-
-                // if not verified
-                if(otpResponse.data.success == true && otpResponse.data.student.isVerified == false){
-                    AsyncStorage.setItem('token', otpResponse.data.student.token)
+                } else {
+                    await AsyncStorage.setItem('token', otpResponse.data.student.token)
                     setShowMandatoryDetails(true)
                 }
-            } catch (error) {
+            } else {
+                // Explicitly handle incorrect OTP
+                setOtpError(otpResponse.data.message || 'Invalid OTP. Please try again.');
                 setVerificationStatus('failure')
-                setStatusMessage('Failed to verify OTP. Please try again.')
-            } finally {
-                setIsVerifyingOTP(false)
             }
+        } catch (error) {
+            console.error('OTP Verification Error:', error); // Detailed error logging
+            
+            // More specific error handling
+            if (axios.isAxiosError(error)) {
+                setOtpError(error.response?.data?.message || 'Failed to verify OTP. Please try again.');
+            } else {
+                setOtpError('An unexpected error occurred. Please try again.');
+            }
+            
+            setVerificationStatus('failure')
+        } finally {
+            setIsVerifyingOTP(false)
         }
     }
 
@@ -242,7 +261,22 @@ export default function SignInScreen() {
                         </>
                     ) : (
                         <>
-                            <OTPInput width={width} value={otp} onChange={setOTP} />
+                            <OTPInput 
+                                width={width} 
+                                value={otp} 
+                                onChange={(text) => {
+                                    setOTP(text);
+                                    // Clear error when user starts typing
+                                    if (otpError) setOtpError('');
+                                }} 
+                            />
+                            {otpError && (
+                                <View className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+                                    <Text className="text-red-500 text-center font-bold">
+                                        {otpError}
+                                    </Text>
+                                </View>
+                            )}
                             <CustomButton 
                                 onPress={handleVerifyOTP}
                                 disabled={otp.length !== 4 || isVerifyingOTP}

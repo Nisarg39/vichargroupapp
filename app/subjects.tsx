@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, Platform, StatusBar, Image, Dimensions, Animated } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, Platform, StatusBar, Image, Dimensions, Animated, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState, useRef } from 'react';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,14 +19,20 @@ const borderStyles = [
     '#2259A1'
 ];
 
-const { width: screenWidth } = Dimensions.get('window');
-
 export default function Subjects() {
+    const { width: screenWidth, height: screenHeight } = useWindowDimensions();
     const router = useRouter();
     const { subjects } = useLocalSearchParams();
     const [expandedSubject, setExpandedSubject] = useState<string | null>(null);
     const subjectsArray = JSON.parse(subjects as string);
     const scaleValue = useSharedValue(1);
+
+    // Calculate responsive sizes
+    const isSmallScreen = screenWidth < 360;
+    const headerHeight = screenHeight * 0.12;
+    const iconSize = screenWidth * 0.06 > 24 ? 24 : screenWidth * 0.06;
+    const headerFontSize = isSmallScreen ? 18 : 22;
+    const subHeaderFontSize = isSmallScreen ? 13 : 16;
 
     const animatedStyle = useAnimatedStyle(() => {
         return {
@@ -46,20 +52,37 @@ export default function Subjects() {
     return (
         <View style={{ flex: 1, backgroundColor: '#E6EEF5' }}>
             <SafeAreaView style={{ flex: 1 }}>
-                <View className='w-full h-[12%] min-h-[80px] max-h-[100px] bg-humpback-500 justify-center items-center'>
-                    <View className='w-full px-5 flex-row items-center'>
+                <View 
+                    className='w-full bg-humpback-500 justify-center items-center'
+                    style={{ 
+                        height: headerHeight,
+                        minHeight: 70,
+                        maxHeight: 100
+                    }}
+                >
+                    <View className='w-full px-3 flex-row items-center'>
                         <TouchableOpacity 
                             onPress={() => router.back()}
-                            style={{width: screenWidth * 0.15}}
+                            style={{width: screenWidth * 0.12}}
                             className="justify-center"
                         >
-                            <Ionicons name="arrow-back" size={24} color="white" />
+                            <Ionicons name="arrow-back" size={iconSize} color="white" />
                         </TouchableOpacity>
                         <View className='flex-1 items-center'>
-                            <Text className="text-base text-white/80 text-center">Welcome back! 👋</Text>
-                            <Text className="text-2xl font-bold text-white tracking-wide text-center">Your Subjects</Text>
+                            <Text 
+                                className="text-white/80"
+                                style={{ fontSize: subHeaderFontSize }}
+                            >
+                                Welcome back! 👋
+                            </Text>
+                            <Text 
+                                style={{ fontSize: headerFontSize }} 
+                                className="font-bold text-white tracking-wide"
+                            >
+                                Your Subjects
+                            </Text>
                         </View>
-                        <View style={{width: screenWidth * 0.15}} />
+                        <View style={{width: screenWidth * 0.12}} />
                     </View>
                 </View>
                 <ScrollView 

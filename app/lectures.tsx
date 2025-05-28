@@ -1,5 +1,5 @@
-import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, Platform, StatusBar, Image, Dimensions, Animated } from "react-native";
-import {useLocalSearchParams, useRouter } from "expo-router";
+import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, Platform, StatusBar, Image, Dimensions, Animated, useWindowDimensions } from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import VideoLecture from "@/components/classroom/lecture/videolecture";
 import DPPs from "@/components/classroom/lecture/dpps";
 import Exercises from "@/components/classroom/lecture/exercises";
@@ -8,9 +8,8 @@ import { useEffect, useRef, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
 
-const { width: screenWidth } = Dimensions.get('window');
-
 export default function Lectures() {
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const {chapterId, chapterName, image, chapterIndex} = useLocalSearchParams();
   const offerAnimation = useRef(new Animated.Value(1)).current;
   const router = useRouter();
@@ -18,6 +17,15 @@ export default function Lectures() {
   const [dpps, setDpps] = useState([]);
   const [exercises, setExercises] = useState([]);
   const [activeTab, setActiveTab] = useState('lectures');
+  
+  // Calculate responsive sizes
+  const isSmallScreen = screenWidth < 360;
+  const headerHeight = screenHeight * 0.12;
+  const iconSize = screenWidth * 0.06 > 24 ? 24 : screenWidth * 0.06;
+  const imageSize = screenWidth * 0.12;
+  const headerFontSize = isSmallScreen ? 18 : 22;
+  const tabFontSize = isSmallScreen ? 12 : 14;
+  const tabPadding = isSmallScreen ? { x: 4, y: 1 } : { x: 6, y: 2 };
 
   useEffect(() => {
     const pulseOffer = () => {
@@ -70,66 +78,118 @@ export default function Lectures() {
     fetchData();
   }, [chapterId]);
 
+  // Responsive tab layout based on screen size
+  const renderTabs = () => {
+    if (isSmallScreen) {
+      return (
+        <View className="flex-row justify-around p-2 bg-white shadow-sm">
+          {renderTab('lectures', 'video-library', 'Lectures')}
+          {renderTab('dpps', 'tasks', 'DPPs', true)}
+          {renderTab('exercises', 'fitness-center', 'Exercises')}
+        </View>
+      );
+    }
+    
+    return (
+      <View className="flex-row justify-around p-3 bg-white shadow-sm">
+        {renderTab('lectures', 'video-library', 'Lectures')}
+        {renderTab('dpps', 'tasks', 'DPPs', true)}
+        {renderTab('exercises', 'fitness-center', 'Exercises')}
+      </View>
+    );
+  };
+
+  const renderTab = (tabName, iconName, label, isFontAwesome = false) => {
+    const isActive = activeTab === tabName;
+    const Icon = isFontAwesome ? FontAwesome5 : MaterialIcons;
+    
+    return (
+      <TouchableOpacity 
+        onPress={() => setActiveTab(tabName)}
+        className={`px-${tabPadding.x} py-${tabPadding.y} rounded-full flex-row items-center space-x-1 ${isActive ? 'bg-humpback-500' : 'bg-gray-100'}`}
+        style={{ paddingHorizontal: tabPadding.x * 4, paddingVertical: tabPadding.y * 4 }}
+      >
+        <Icon 
+          name={iconName} 
+          size={isSmallScreen ? 14 : 18} 
+          color={isActive ? 'white' : '#4A5568'} 
+        />
+        <Text 
+          className={`${isActive ? 'text-white font-medium' : 'text-gray-700'}`}
+          style={{ fontSize: tabFontSize }}
+        >
+          {label}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: '#E6EEF5' }}>
       <SafeAreaView style={{ flex: 1 }}>
-        <View className='w-full h-[12%] min-h-[80px] max-h-[100px] bg-humpback-500 justify-center items-center'>
-          <View className='w-full px-5 flex-row items-center'>
+        <View 
+          className='w-full bg-humpback-500 justify-center items-center'
+          style={{ 
+            height: headerHeight,
+            minHeight: 70,
+            maxHeight: 100
+          }}
+        >
+          <View className='w-full px-3 flex-row items-center'>
             <TouchableOpacity 
               onPress={() => router.back()}
-              style={{width: screenWidth * 0.15}}
+              style={{ width: screenWidth * 0.12 }}
               className="justify-center"
             >
-              <Ionicons name="arrow-back" size={24} color="white" />
+              <Ionicons name="arrow-back" size={iconSize} color="white" />
             </TouchableOpacity>
+            
             <View className='flex-1 items-center'>
               <View className="flex-row items-center justify-center">
-                <Text className="text-2xl font-bold text-white tracking-wide">Chapter </Text>
-                <Text className="text-2xl font-bold text-white tracking-wide">{chapterIndex}</Text>
+                <Text style={{ fontSize: headerFontSize }} className="font-bold text-white tracking-wide">
+                  Chapter {chapterIndex}
+                </Text>
               </View>
-              <Text className="text-base text-white/80">{chapterName}</Text>
+              <Text 
+                className="text-white/80"
+                style={{ fontSize: isSmallScreen ? 13 : 16 }}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {chapterName}
+              </Text>
             </View>
-            <View className='bg-white/30 rounded-full p-2' style={{shadowColor: '#000', shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.25, shadowRadius: 3.84, elevation: 5}}>
+            
+            <View 
+              className='bg-white/30 rounded-full p-2' 
+              style={{
+                shadowColor: '#000', 
+                shadowOffset: {width: 0, height: 2}, 
+                shadowOpacity: 0.25, 
+                shadowRadius: 3.84, 
+                elevation: 5
+              }}
+            >
               <Image 
                 source={{ uri: typeof image === 'string' ? image : image[0] }} 
                 style={{
-                  width: screenWidth * 0.15,
-                  height: screenWidth * 0.15
+                  width: imageSize,
+                  height: imageSize
                 }}
                 resizeMode="contain"
               />
             </View>
           </View>
         </View>
-        <View className="flex-row justify-around p-3 bg-white shadow-sm">
-          <TouchableOpacity 
-            onPress={() => setActiveTab('lectures')}
-            className={`px-6 py-2 rounded-full flex-row items-center space-x-2 ${activeTab === 'lectures' ? 'bg-humpback-500' : 'bg-gray-100'}`}
-          >
-            <MaterialIcons name="video-library" size={18} color={activeTab === 'lectures' ? 'white' : '#4A5568'} />
-            <Text className={`${activeTab === 'lectures' ? 'text-white font-medium' : 'text-gray-700'}`}>Lectures</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            onPress={() => setActiveTab('dpps')}
-            className={`px-6 py-2 rounded-full flex-row items-center space-x-2 ${activeTab === 'dpps' ? 'bg-humpback-500' : 'bg-gray-100'}`}
-          >
-            <FontAwesome5 name="tasks" size={16} color={activeTab === 'dpps' ? 'white' : '#4A5568'} />
-            <Text className={`${activeTab === 'dpps' ? 'text-white font-medium' : 'text-gray-700'}`}>DPPs</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            onPress={() => setActiveTab('exercises')}
-            className={`px-6 py-2 rounded-full flex-row items-center space-x-2 ${activeTab === 'exercises' ? 'bg-humpback-500' : 'bg-gray-100'}`}
-          >
-            <MaterialIcons name="fitness-center" size={18} color={activeTab === 'exercises' ? 'white' : '#4A5568'} />
-            <Text className={`${activeTab === 'exercises' ? 'text-white font-medium' : 'text-gray-700'}`}>Exercises</Text>
-          </TouchableOpacity>
-        </View>
+        
+        {renderTabs()}
+        
         <ScrollView
           className='flex-1'
           contentContainerStyle={{
             paddingHorizontal: screenWidth * 0.04,
             paddingTop: screenWidth * 0.04,
-            paddingBottom: screenWidth * 0.04
+            paddingBottom: screenWidth * 0.08
           }}
         >
           <View className="flex-1">

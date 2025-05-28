@@ -24,7 +24,7 @@ export default function RootLayout() {
         paddingTop: paddingTop,
         backgroundColor: route.name === 'home' ? '#E8F7FE' :
                        route.name === 'products' ? '#FFECEC' :
-                       route.name === 'classroom' ? '#F2FBE9' :
+                       route.name === 'classroom' ? '#FFF7ED' :
                        route.name === 'notifications' ? '#F3E8FF' :
                        route.name === 'settings' ? '#E8F0F9' : '#fff',
         maxHeight: 75,
@@ -86,7 +86,7 @@ export default function RootLayout() {
           <Ionicons
             name="school"
             size={iconSize}
-            color={focused ? '#58CC02' : 'black'}
+            color={focused ? '#F97316' : 'black'}
             style={{ padding: iconPadding }}
           />
         ),

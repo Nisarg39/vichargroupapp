@@ -1,7 +1,7 @@
 import { View, Text, Image } from 'react-native'
 export default function ClassroomHeader() {
     return (
-        <View className='p-6 bg-green-500 rounded-b-[30px] items-center shadow-md'>
+        <View className='p-6 bg-orange-500 rounded-b-[30px] items-center shadow-md'>
             <Text className='text-3xl font-bold text-white mb-2'>My Classroom</Text>
             <Text className='text-base text-white/90 mb-5'>Continue your learning journey</Text>
             <Image 
