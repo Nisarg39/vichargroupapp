@@ -8,7 +8,7 @@ export default function SocialMediaLinks() {
     const containerPadding = screenWidth < 380 ? 4 : screenWidth < 768 ? 6 : 8;
     
     return (
-        <View className='w-full flex items-center py-2 px-2 mt-2'>
+        <View className='w-full flex items-center pt-2 px-2 mt-2 mb-28'>
             <Text className='text-lg font-semibold mb-2'>Connect with us</Text>
             <View 
                 className='flex-row justify-center gap-3 items-center'

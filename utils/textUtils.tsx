@@ -34,6 +34,11 @@ export const renderLatex = (content: string, style: any = {}): React.ReactNode =
             font-size: ${style.fontSize || 16}px;
             color: ${style.color || '#000'};
             background-color: transparent;
+            overflow: visible;
+          }
+          #content {
+            width: 100%;
+            overflow: visible;
           }
           strong { font-weight: bold; }
           em { font-style: italic; }
@@ -50,6 +55,16 @@ export const renderLatex = (content: string, style: any = {}): React.ReactNode =
               ],
               throwOnError: false
             });
+            
+            // Send message to React Native with content height
+            setTimeout(function() {
+              window.ReactNativeWebView.postMessage(
+                JSON.stringify({
+                  type: 'contentHeight',
+                  height: document.body.scrollHeight
+                })
+              );
+            }, 300);
           });
         </script>
       </body>
@@ -65,13 +80,24 @@ export const renderLatex = (content: string, style: any = {}): React.ReactNode =
         { 
           backgroundColor: 'transparent', 
           height: 'auto',
-          minHeight: 50,
-          width: '100%'
+          minHeight: 100, // Increased minimum height
+          width: '100%',
+          opacity: 1
         }, 
         style
       ]}
       scrollEnabled={false}
       javaScriptEnabled={true}
+      onMessage={(event) => {
+        try {
+          const data = JSON.parse(event.nativeEvent.data);
+          if (data.type === 'contentHeight') {
+            // We could update height here if needed
+          }
+        } catch (e) {
+          console.error('Error parsing WebView message:', e);
+        }
+      }}
     />
   );
 };

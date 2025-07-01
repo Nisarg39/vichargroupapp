@@ -1,3 +1,11 @@
+Requirements: 
+nodejs - https://nodejs.org/en/download/
+expo cli - npm install -g expo-cli
+jdk17 - https://www.oracle.com/java/technologies/javase-jdk11-downloads.html
+install android studio and configure it with sdk manager for expo
+
+
+to get local ip address of mac to connect to localserver - ipconfig getifaddr en0 
 execute before building app offline or on eas - npx expo prebuild --clean
 To build preview app on eas - eas build -p android --profile preview --clear-cache
-build android app offline - eas build -p android --profile preview  --local --clear-cache
+build android app offline for preview or production - eas build -p android --profile preview/production  --local --clear-cache

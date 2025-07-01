@@ -1,4 +1,4 @@
-import { View, Text, Image, TouchableOpacity, Animated } from 'react-native';
+import { View, Text, Image, TouchableOpacity, Animated, Platform, SafeAreaView } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Drawer } from 'expo-router/drawer';
 import { useRouter } from 'expo-router';
@@ -8,6 +8,7 @@ import { useContext } from 'react';
 import { StudentContext } from '../context/StudentContext';
 import { StudentData } from '../../src/types/interfaces';
 import { FontAwesome5 } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface CustomDrawerContentProps {
     navigation: any;
@@ -18,6 +19,7 @@ const CustomDrawerContent: React.FC<CustomDrawerContentProps> = (props) => {
     const router = useRouter();
     const { setIsSignedIn } = useContext(AuthContext);
     const { studentData, setStudentData } = useContext<{studentData: StudentData | null, setStudentData: any}>(StudentContext)
+    const insets = useSafeAreaInsets();
 
     // console.log(studentData?.name)
 
@@ -26,7 +28,13 @@ const CustomDrawerContent: React.FC<CustomDrawerContentProps> = (props) => {
     };
 
     return (
-        <DrawerContentScrollView {...props} className="bg-white shadow-lg">
+        <DrawerContentScrollView 
+            {...props} 
+            className="bg-white shadow-lg"
+            contentContainerStyle={{
+                paddingBottom: insets.bottom + 20 // Add padding to the bottom
+            }}
+        >
             <View className="p-4 items-center bg-white rounded-2xl m-2 shadow-xl border border-white/80">
                 <Image
                     source={{ uri: 'https://cdn-icons-png.flaticon.com/256/8662/8662228.png' }}
@@ -101,6 +109,7 @@ const CustomDrawerContent: React.FC<CustomDrawerContentProps> = (props) => {
 export default function Layout() {
     const router = useRouter();
     const scaleAnim = new Animated.Value(1);
+    const insets = useSafeAreaInsets();
 
     const handlePressIn = () => {
         Animated.spring(scaleAnim, {
@@ -125,9 +134,12 @@ export default function Layout() {
                         backgroundColor: '#FFFFFF',
                     },
                     headerTintColor: '#FF9600',
+                    headerShadowVisible: false,
                     drawerStyle: { 
                         backgroundColor: '#FFFFFF',
-                        width: 280
+
+                        width: 280,
+                        paddingTop: insets.top
                     },
                     headerLeft: () => (
                         <TouchableOpacity 
@@ -141,7 +153,10 @@ export default function Layout() {
                                 style={{ transform: [{ scale: scaleAnim }] }}
                             />
                         </TouchableOpacity>
-                    )
+                    ),
+                    contentStyle: {
+                        paddingBottom: insets.bottom // Add padding to the bottom of the screen content
+                    }
                 })}
             >
                 <Drawer.Screen name="[tabs]" options={{
@@ -163,6 +178,7 @@ export default function Layout() {
                         backgroundColor: '#FFFFFF'
                     },
                     headerTintColor: '#FF9600',
+                    
                 }} />
                 <Drawer.Screen name="profile" options={{
                     title: 'Profile',

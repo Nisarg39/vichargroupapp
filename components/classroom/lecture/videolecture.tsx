@@ -13,6 +13,7 @@ import {
 } from 'react-native'
 import { useRouter } from 'expo-router'
 import { FontAwesome, MaterialIcons, Ionicons } from '@expo/vector-icons'
+import { renderLatex } from '@/utils/textUtils';
 
 interface VideoLectureProps {
   lectures: any[];
@@ -26,7 +27,7 @@ const VideoLecture: React.FC<VideoLectureProps> = ({ lectures }) => {
     const [selectedTeacher, setSelectedTeacher] = useState<string | null>(null);
     const [showSortDropdown, setShowSortDropdown] = useState(false);
 
-    // console.log(lectures[0].serialNumber)
+    // console.log(lectures)
     const getYoutubeVideoId = (url: string) => {
         if (!url) return null;
         
@@ -296,7 +297,7 @@ const VideoLecture: React.FC<VideoLectureProps> = ({ lectures }) => {
                 return (
                     <View key={lecture?._id} style={{ marginBottom: screenWidth * 0.04 }} className='w-full'>
                         <TouchableOpacity 
-                            className="bg-humpback-500 rounded-[20px] overflow-hidden"
+                            className="bg-humpback-500 rounded-[20px]"
                             style={{
                                 borderWidth: 3,
                                 borderColor: '#2259A1',
@@ -310,60 +311,84 @@ const VideoLecture: React.FC<VideoLectureProps> = ({ lectures }) => {
                             onPressIn={() => handlePressIn(lecture?._id)}
                             onPressOut={() => handlePressOut(lecture?._id)}
                         >
-                            {renderVideoThumbnail(lecture, thumbnailUrl)}
-                            
-                            <View className="p-4">
-                                <View className="flex-row items-center justify-between">
-                                    <View className="flex-row items-center flex-1 mr-2">
-                                        <Text className="text-white font-bold mr-2">
-                                            #{lecture?.serialNumber || index + 1}
-                                        </Text>
-                                        <Text className="text-white font-bold text-lg flex-1">
-                                            {lecture?.title || `Lecture ${index + 1}`}
-                                        </Text>
-                                    </View>
-                                    <TouchableOpacity 
-                                        onPress={() => {
-                                            if (lecture?.teacher?._id) {
-                                                router.push({
-                                                    pathname: './teacherdetails',
-                                                    params: { 
-                                                        teacherId: lecture.teacher._id ,
-                                                        name: lecture.teacher.name,
-                                                        bio: lecture.teacher.bio,
-                                                        imageUrl: lecture.teacher.imageUrl,
-                                                    }
-                                                })
-                                            }
-                                        }}
-                                        className="flex-row items-center"
-                                    >
-                                        {lecture?.teacher?.imageUrl ? (
-                                            <Image 
-                                                source={{ uri: lecture.teacher.imageUrl }}
-                                                style={{ 
-                                                    width: 28,
-                                                    height: 28,
-                                                    borderRadius: 14,
-                                                    borderWidth: 1,
-                                                    borderColor: 'rgba(255,255,255,0.2)'
-                                                }}
-                                            />
-                                        ) : (
-                                            <FontAwesome name="user-circle" size={28} color="white" />
-                                        )}
-                                        <Text className="text-white/90 ml-2 text-sm font-medium">
-                                            {lecture?.teacher?.name || 'Unknown Teacher'}
-                                        </Text>
-                                    </TouchableOpacity>                                </View>
-                                {lecture?.description && (
-                                    <View className="flex-row items-start mt-2">
-                                        <MaterialIcons name="description" size={16} color="rgba(255,255,255,0.8)" style={{ marginRight: 8, marginTop: 2 }} />
-                                        <Text className="text-white/80 text-sm leading-5 flex-1">
-                                            {lecture.description}
-                                        </Text>
-                                    </View>
-                                )}
+                            <View style={{ flex: 1, overflow: 'visible' }}>
+                                {renderVideoThumbnail(lecture, thumbnailUrl)}
+                                
+                                <View className="p-4">
+                                    <View className="flex-row items-center justify-between">
+                                        <View className="flex-row items-center flex-1 mr-2">
+                                            <Text className="text-white font-bold mr-2">
+                                                #{lecture?.serialNumber || index + 1}
+                                            </Text>
+                                            <Text className="text-white font-bold text-lg flex-1">
+                                                {lecture?.title || `Lecture ${index + 1}`}
+                                            </Text>
+                                        </View>
+                                        <TouchableOpacity 
+                                            onPress={() => {
+                                                if (lecture?.teacher?._id) {
+                                                    router.push({
+                                                        pathname: './teacherdetails',
+                                                        params: { 
+                                                            teacherId: lecture.teacher._id ,
+                                                            name: lecture.teacher.name,
+                                                            bio: lecture.teacher.bio,
+                                                            imageUrl: lecture.teacher.imageUrl,
+                                                        }
+                                                    })
+                                                }
+                                            }}
+                                            className="flex-row items-center"
+                                        >
+                                            {lecture?.teacher?.imageUrl ? (
+                                                <Image 
+                                                    source={{ uri: lecture.teacher.imageUrl }}
+                                                    style={{ 
+                                                        width: 28,
+                                                        height: 28,
+                                                        borderRadius: 14,
+                                                        borderWidth: 1,
+                                                        borderColor: 'rgba(255,255,255,0.2)'
+                                                    }}
+                                                />
+                                            ) : (
+                                                <FontAwesome name="user-circle" size={28} color="white" />
+                                            )}
+                                            <Text className="text-white/90 ml-2 text-sm font-medium">
+                                                {lecture?.teacher?.name || 'Unknown Teacher'}
+                                            </Text>
+                                        </TouchableOpacity>                                </View>
+                                    {lecture?.description && (
+                                        <View style={{ 
+                                            marginTop: 10,
+                                            paddingTop: 5,
+                                            borderTopWidth: 1,
+                                            borderTopColor: 'rgba(255,255,255,0.1)',
+                                        }}>
+                                            <View style={{ 
+                                                flexDirection: 'row',
+                                                alignItems: 'flex-start',
+                                                width: '100%',
+                                            }}>
+                                                <MaterialIcons 
+                                                    name="description" 
+                                                    size={16} 
+                                                    color="rgba(255,255,255,0.8)" 
+                                                    style={{ marginRight: 8, marginTop: 2 }} 
+                                                />
+                                                
+                                                {/* Create a completely unconstrained container for LaTeX */}
+                                                <View style={{ width: screenWidth - 80 }}>
+                                                    {renderLatex(lecture.description, { 
+                                                        fontSize: 14,
+                                                        color: 'rgba(255,255,255,0.8)',
+                                                        lineHeight: 20,
+                                                    })}
+                                                </View>
+                                            </View>
+                                        </View>
+                                    )}
+                                </View>
                             </View>
                         </TouchableOpacity>
                     </View>

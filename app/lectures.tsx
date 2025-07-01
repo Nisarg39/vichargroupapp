@@ -27,6 +27,9 @@ export default function Lectures() {
   const tabFontSize = isSmallScreen ? 12 : 14;
   const tabPadding = isSmallScreen ? { x: 4, y: 1 } : { x: 6, y: 2 };
 
+  // Calculate additional top padding for notch
+  const topPadding = Platform.OS === 'ios' ? 44 : StatusBar.currentHeight || 0;
+
   useEffect(() => {
     const pulseOffer = () => {
       Animated.sequence([
@@ -99,7 +102,7 @@ export default function Lectures() {
     );
   };
 
-  const renderTab = (tabName, iconName, label, isFontAwesome = false) => {
+  const renderTab = (tabName: any, iconName: any, label: any, isFontAwesome = false) => {
     const isActive = activeTab === tabName;
     const Icon = isFontAwesome ? FontAwesome5 : MaterialIcons;
     
@@ -126,13 +129,17 @@ export default function Lectures() {
 
   return (
     <View style={{ flex: 1, backgroundColor: '#E6EEF5' }}>
-      <SafeAreaView style={{ flex: 1 }}>
+      <SafeAreaView style={{ 
+        flex: 1, 
+        paddingTop: Platform.OS === 'android' ? topPadding : 0 
+      }}>
         <View 
           className='w-full bg-humpback-500 justify-center items-center'
           style={{ 
             height: headerHeight,
             minHeight: 70,
-            maxHeight: 100
+            maxHeight: 100,
+            paddingTop: Platform.OS === 'ios' ? topPadding / 2 : 0
           }}
         >
           <View className='w-full px-3 flex-row items-center'>

@@ -2,32 +2,58 @@ import './globals.css';
 import { Stack, useRouter } from "expo-router";
 import { createContext, useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, View, StatusBar, Platform } from "react-native";
 import { useFonts } from "expo-font";
 import axios from 'axios';
 import { StudentContext, StudentProvider } from './context/StudentContext';
 import { useContext } from 'react';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import SplashScreen from '@/components/SplashScreen';
 
-// Create an auth context to share the state and setter
 export const AuthContext = createContext({
   isSignedIn: false,
   setIsSignedIn: (value: boolean) => {},
 });
 
 export default function RootLayout() {
-  const router = useRouter();
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [showSplash, setShowSplash] = useState(true);
 
-  const [loaded, error] = useFonts({
+  const [loaded] = useFonts({
     'BADABB': require('../assets/fonts/BADABB.ttf'),
     'Tektur': require('../assets/fonts/Tektur-Bold.ttf'),
   });
 
-  // Wrap the component content with StudentProvider
+  // Check auth state immediately when app starts
+  useEffect(() => {
+    const checkInitialAuth = async () => {
+      try {
+        const storedAuth = await AsyncStorage.getItem("isSignedIn");
+        setIsSignedIn(storedAuth === "true");
+      } catch (error) {
+        console.error("Error reading auth state:", error);
+      }
+    };
+    checkInitialAuth();
+  }, []);
+
+  const handleSplashComplete = () => {
+    setShowSplash(false);
+    setIsLoading(false);
+  };
+
+  if (showSplash) {
+    return <SplashScreen onComplete={handleSplashComplete} />;
+  }
+
   return (
     <SafeAreaProvider>
+      <StatusBar 
+        barStyle="dark-content" 
+        backgroundColor="transparent" 
+        translucent={Platform.OS === 'android'} 
+      />
       <StudentProvider>
         <RootLayoutContent 
           isSignedIn={isSignedIn} 
@@ -104,6 +130,7 @@ function RootLayoutContent({ isSignedIn, setIsSignedIn, isLoading, setIsLoading,
 
       if(response.data.success == true){
         setStudentData(response.data.student);
+        // console.log(response.data.student.purchases[0].product.subjects[0].chapters);
       }else{
         setStudentData(null);
         setIsSignedIn(false);
@@ -115,11 +142,12 @@ function RootLayoutContent({ isSignedIn, setIsSignedIn, isLoading, setIsLoading,
       console.error(error);
     }
   }
+  
   if (isLoading) {
     return (
-      <View>
+      <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" color="#0000ff" />
-      </View>
+      </SafeAreaView>
     );
   }
 
@@ -130,7 +158,14 @@ function RootLayoutContent({ isSignedIn, setIsSignedIn, isLoading, setIsLoading,
         setIsSignedIn,
       }}
     >
-      <Stack initialRouteName={isSignedIn ? "[drawer]" : "signin"}>
+      <Stack 
+        initialRouteName={isSignedIn ? "[drawer]" : "signin"}
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: 'white' },
+          animation: 'slide_from_right',
+        }}
+      >
         <Stack.Screen name="[drawer]" options={{ headerShown: false }} />
         <Stack.Screen name="signin" options={{ headerShown: false }} />
         <Stack.Screen name="subjects" options={{ headerShown: false }} />
@@ -143,7 +178,7 @@ function RootLayoutContent({ isSignedIn, setIsSignedIn, isLoading, setIsLoading,
             animation: "slide_from_bottom",
           }}
         />
-        <Stack.Screen name='teacherdetails' options={{headerShown: false}}/>
+        <Stack.Screen name='teacherdetails' options={{ headerShown: false }}/>
       </Stack>
     </AuthContext.Provider>
   );

@@ -1,18 +1,29 @@
 import { View, Text, ScrollView, Dimensions, Image, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { useState, useRef, useEffect } from 'react';
+import axios from 'axios';
+
+interface Banner {
+    serialNumber: number;
+    imageUrl: string;
+}
 
 export default function BannerSection() {
     const [activeIndex, setActiveIndex] = useState(0);
+    const [bannerImages, setBannerImages] = useState<string[]>([]);
+    const [loading, setLoading] = useState(true);
     const scrollViewRef = useRef<ScrollView>(null);
     const fadeAnim = useRef(new Animated.Value(1)).current;
 
-    const bannerImages = [
+    // Fallback images in case API fails
+    const fallbackImages = [
         require('../../assets/images/vivekSirBanner.png'),
         'https://cdn-icons-png.flaticon.com/256/7139/7139076.png',
         'https://cdn-icons-png.flaticon.com/256/7139/7139076.png'
     ];
 
     const handlePageChange = (newIndex: number) => {
+        if (bannerImages.length === 0) return;
+        
         Animated.sequence([
             Animated.timing(fadeAnim, {
                 toValue: 0.7,
@@ -33,13 +44,63 @@ export default function BannerSection() {
         });
     };
 
+    async function fetchBanners(){
+        try {
+            setLoading(true);
+            const response = await axios.post(`${process.env.EXPO_PUBLIC_API_URL}/api/app/signin/showBanners`,{
+                token: 'abc'
+            },{
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                    'Accept': 'application/json',
+                }
+            });
+            
+            if (response.data.success && response.data.banners && response.data.banners.length > 0) {
+                // Sort banners by serialNumber and extract imageUrls
+                const sortedBanners = response.data.banners
+                    .sort((a: Banner, b: Banner) => a.serialNumber - b.serialNumber)
+                    .map((banner: Banner) => banner.imageUrl);
+                
+                setBannerImages(sortedBanners);
+                setActiveIndex(0); // Reset to first image
+                // console.log('Fetched banners:', sortedBanners);
+            } else {
+                // Use fallback images if API doesn't return banners
+                setBannerImages(fallbackImages.map(img => typeof img === 'string' ? img : ''));
+                console.log('No banners from API, using fallback images');
+            }
+        } catch (error) {
+            console.error('Error fetching banners:', error);
+            // Use fallback images on error
+            setBannerImages(fallbackImages.map(img => typeof img === 'string' ? img : ''));
+        } finally {
+            setLoading(false);
+        }
+    }
+
     useEffect(() => {
+        if (bannerImages.length === 0) return;
+        
         const interval = setInterval(() => {
             const newIndex = activeIndex === bannerImages.length - 1 ? 0 : activeIndex + 1;
             handlePageChange(newIndex);
         }, 3000);
         return () => clearInterval(interval);
-    }, [activeIndex]);
+    }, [activeIndex, bannerImages.length]);
+
+    useEffect(() => {
+        fetchBanners();
+    }, []);
+
+    // Don't render anything while loading or if no images
+    if (loading || bannerImages.length === 0) {
+        return (
+            <View style={[styles.outerContainer, styles.loadingContainer]}>
+                <Text style={styles.loadingText}>Loading banners...</Text>
+            </View>
+        );
+    }
 
     return (
         <View style={styles.outerContainer}>
@@ -55,7 +116,7 @@ export default function BannerSection() {
                     }}
                     style={styles.scrollView}
                 >
-                    {bannerImages.map((image, index) => (
+                    {bannerImages.map((imageUrl, index) => (
                         <TouchableOpacity 
                             key={index}
                             activeOpacity={0.9}
@@ -64,8 +125,11 @@ export default function BannerSection() {
                         >
                             <View style={styles.buttonInner}>
                                 <Animated.Image
-                                    source={typeof image === 'string' ? { uri: image } : image}
+                                    source={{ uri: imageUrl }}
                                     style={[styles.banner, { opacity: fadeAnim }]}
+                                    onError={(error) => {
+                                        console.log('Image load error for:', imageUrl, error.nativeEvent.error);
+                                    }}
                                 />
                             </View>
                         </TouchableOpacity>
@@ -187,5 +251,15 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.4,
         shadowRadius: 4,
         elevation: 3,
+    },
+    loadingContainer: {
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: bannerHeight,
+    },
+    loadingText: {
+        fontSize: 16,
+        color: '#666',
+        fontWeight: '500',
     },
 });

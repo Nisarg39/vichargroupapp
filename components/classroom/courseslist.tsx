@@ -18,18 +18,18 @@ interface Course {
 }
 
 const cardStyles = [
-    'bg-blue-600',
+    'bg-[#1ecbe1]',
     'bg-fox-500',
     'bg-beetle-500',
     'bg-humpback-500'
-]
+];
 
 const borderStyles = [
-    '#1E40AF',
+    '#0891B2',
     '#CC7800',
     '#B54FFF',
     '#2259A1'
-]
+];
 
 const DEFAULT_IMAGE = 'https://cdn-icons-png.flaticon.com/256/11483/11483670.png';
 
@@ -42,7 +42,7 @@ export default function CoursesList() {
     useEffect(() => {
         if (studentData && studentData.purchases) {
             const purchasedCourses = studentData.purchases
-                .filter(purchase => purchase.product.type === 'course')
+                .filter(purchase => purchase.product.type === 'course' || purchase.product.type === 'mtc')
                 .map((purchase) => {
                     const product = purchase.product;
                     const subjectsCount = product.subjects?.length || 0;
@@ -72,11 +72,17 @@ export default function CoursesList() {
     }, [studentData]);
 
     const handleContinueLearning = (course: Course) => {
+
+
+        // pass the productType as params mtc or course
+
+        
         if (course.subjects) {
             router.push({
                 pathname: "/subjects",
                 params: { 
                     subjects: JSON.stringify(course.subjects)
+
                 }
             });
         } else {
@@ -94,7 +100,7 @@ export default function CoursesList() {
 
     if (courses.length === 0) {
         return (
-            <View className='flex-1 items-center justify-center pt-6 pb-20'>
+            <View className='flex-1 items-center justify-center pt-6 pb-24'>
                 <Image 
                     source={{ uri: 'https://cdn-icons-png.flaticon.com/256/5784/5784099.png' }} 
                     className='w-40 h-40 opacity-70 scale-120'
@@ -135,7 +141,11 @@ export default function CoursesList() {
     }
 
     return (
-        <ScrollView className='flex-1 px-4 pt-6'>
+        <ScrollView 
+            className='flex-1 px-4 pt-6'
+            contentContainerStyle={{ paddingBottom: 100 }}
+            showsVerticalScrollIndicator={false}
+        >
             {courses.map((course, index) => {
                 const cardStyle = cardStyles[index % 4];
                 const borderStyle = borderStyles[index % 4];

@@ -2,7 +2,7 @@
   "expo": {
     "name": "Vichar Group",
     "slug": "vicharGroup",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
@@ -18,7 +18,15 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.nisarg39.vicharGroup",
+      "version": 2,
       "permissions": ["INTERNET"]
+    },
+    "androidStatusBar": {
+      "backgroundColor": "#ffffff",
+      "barStyle": "dark-content"
+    },
+    "splash": {
+      "backgroundColor": "#ffffff"
     },
     "web": {
       "bundler": "metro",
@@ -58,6 +66,11 @@
     },
     "assetBundlePatterns": [
       "**/*"
-    ]
+    ],
+    "doctor": {
+      "reactNativeDirectoryCheck": {
+        "listUnknownPackages": false
+      }
+    }
   }
 }

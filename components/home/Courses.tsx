@@ -1,18 +1,18 @@
-import { View, Text, ScrollView, Dimensions, TouchableOpacity, Image, Animated } from 'react-native';
+import { View, Text, ScrollView, Dimensions, TouchableOpacity, Image, Animated, Linking } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRef, useEffect } from 'react';
 
 const courseCardBase = "p-5 rounded-2xl shadow-lg justify-center items-center min-h-[22%] transform perspective-1000 backface-visible-hidden";
 
 const cardStyles = [
-    'bg-blue-600',
+    'bg-[#1ecbe1]',
     'bg-fox-500',
     'bg-beetle-500',
     'bg-humpback-500'
 ];
 
 const borderStyles = [
-    '#1E40AF',
+    '#0891B2',
     '#CC7800',
     '#B54FFF',
     '#2259A1'
@@ -184,6 +184,9 @@ export default function Courses() {
                                             }}
                                             activeOpacity={1}
                                             pressRetentionOffset={{top: 5, left: 5, right: 5, bottom: 5}}
+                                            onPress={() => {
+                                                Linking.openURL('https://www.vichargroup.com/vichar-education');
+                                            }}
                                             onPressIn={(e) => {
                                                 e.currentTarget.setNativeProps({
                                                     style: { transform: [{ translateY: 2 }], borderBottomWidth: 2, borderRightWidth: 2 }

@@ -80,7 +80,7 @@ export default function EnquiryForm() {
     };
 
     return (
-        <ScrollView className="w-full flex-1 p-4">
+        <ScrollView className="w-full flex-1 p-4 pb-24">
             <View className="flex-col items-center p-5">
                 <Text className="text-2xl font-bold text-gray-900 tracking-wider">Feeling Confused? 🤔</Text>
                 <Text className="text-sm text-gray-600 mt-2">Let our experts guide your path! ✨</Text>

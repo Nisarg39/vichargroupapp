@@ -152,18 +152,18 @@ export default function CoursesList() {
     }
 
     const cardStyles = [
-        'bg-blue-600',
-        'bg-fox-500',
-        'bg-beetle-500',
-        'bg-humpback-500'
-    ]
+    'bg-[#1ecbe1]',
+    'bg-fox-500',
+    'bg-beetle-500',
+    'bg-humpback-500'
+];
 
-    const borderStyles = [
-        '#1E40AF',
-        '#CC7800',
-        '#B54FFF',
-        '#2259A1'
-    ]
+const borderStyles = [
+    '#0891B2',
+    '#CC7800',
+    '#B54FFF',
+    '#2259A1'
+];
 
     return (
         <FlatList
