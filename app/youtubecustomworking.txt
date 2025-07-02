@@ -1,0 +1,148 @@
+import React, {useEffect, useState, useRef } from "react";
+import { View, Dimensions, TouchableOpacity } from "react-native";
+import { WebView } from 'react-native-webview';
+import { MaterialIcons } from '@expo/vector-icons';
+import * as ScreenOrientation from 'expo-screen-orientation';
+import { useLocalSearchParams } from "expo-router";
+
+export default function VideoPlayer() {
+  const { videoUrl } = useLocalSearchParams();
+  const [playing, setPlaying] = useState(false);
+  const webViewRef = useRef(null);
+  const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+
+  const videoId = videoUrl?.match(/(?:youtu\.be\/|youtube\.com(?:\/embed\/|\/v\/|\/watch\?v=|\/watch\?.+&v=))([^"&?\/\s]{11})/)?.[1];
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+      <body style="margin:0">
+        <div id="player"></div>
+        <script>
+          var tag = document.createElement('script');
+          tag.src = "https://www.youtube.com/iframe_api";
+          var firstScriptTag = document.getElementsByTagName('script')[0];
+          firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+          var player;
+          function onYouTubeIframeAPIReady() {
+            player = new YT.Player('player', {
+              width: '100%',
+              height: '100%',
+              videoId: '${videoId}',
+              playerVars: {
+                'playsinline': 1,
+                'controls': 0,
+                'rel': 0,
+                'showinfo': 0,
+                'modestbranding': 1,
+                'fs': 0,
+                'autoplay': 1,
+                'mute': 1
+              },
+              events: {
+                'onReady': onPlayerReady,
+                'onStateChange': onPlayerStateChange
+              }
+            });
+          }
+
+          function onPlayerReady(event) {
+            window.ReactNativeWebView.postMessage('ready');
+          }
+
+          function onPlayerStateChange(event) {
+            window.ReactNativeWebView.postMessage('state:' + event.data);
+          }
+
+          function handleMessage(message) {
+            switch(message) {
+              case 'play':
+                player.playVideo();
+                break;
+              case 'pause':
+                player.pauseVideo();
+                break;
+              case 'forward':
+                player.seekTo(player.getCurrentTime() + 10, true);
+                break;
+              case 'backward':
+                player.seekTo(Math.max(0, player.getCurrentTime() - 10), true);
+                break;
+            }
+          }
+        </script>
+      </body>
+    </html>
+  `;
+
+  const togglePlayPause = () => {
+    webViewRef.current?.injectJavaScript(`handleMessage('${playing ? 'pause' : 'play'}')`);
+    setPlaying(!playing);
+  };
+
+  const seekForward = () => {
+    webViewRef.current?.injectJavaScript(`handleMessage('forward')`);
+  };
+
+  const seekBackward = () => {
+    webViewRef.current?.injectJavaScript(`handleMessage('backward')`);
+  };
+
+  useEffect(() => {
+    const setupOrientation = async () => {
+      await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+    };
+    setupOrientation();
+    return () => {
+      ScreenOrientation.unlockAsync();
+    };
+  }, []);
+
+  return (
+    <View style={{ 
+      flex: 1, 
+      backgroundColor: 'black',
+      justifyContent: 'center',
+      alignItems: 'center'
+    }}>
+      <WebView
+        ref={webViewRef}
+        source={{ html: htmlContent }}
+        style={{ 
+          width: screenWidth,
+          height: screenHeight,
+          backgroundColor: 'black'
+        }}
+        onMessage={(event) => {
+          if (event.nativeEvent.data === 'ready') {
+            setPlaying(true);
+          }
+        }}
+      />
+      
+      <View style={{
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        padding: 20,
+        backgroundColor: 'rgba(0,0,0,0.5)'
+      }}>
+        <TouchableOpacity onPress={seekBackward} style={{ padding: 15 }}>
+          <MaterialIcons name="replay-10" size={36} color="white" />
+        </TouchableOpacity>
+        
+        <TouchableOpacity onPress={togglePlayPause} style={{ padding: 15 }}>
+          <MaterialIcons name={playing ? "pause" : "play-arrow"} size={36} color="white" />
+        </TouchableOpacity>
+        
+        <TouchableOpacity onPress={seekForward} style={{ padding: 15 }}>
+          <MaterialIcons name="forward-10" size={36} color="white" />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
