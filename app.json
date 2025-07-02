@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.nisarg39.vicharGroup"
+      "bundleIdentifier": "com.vicharGroup"
     },
     "android": {
       "adaptiveIcon": {
@@ -18,21 +18,18 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.nisarg39.vicharGroup",
-      "version": 2,
-      "permissions": ["INTERNET"]
-    },
-    "androidStatusBar": {
-      "backgroundColor": "#ffffff",
-      "barStyle": "dark-content"
-    },
-    "splash": {
-      "backgroundColor": "#ffffff"
+      "permissions": [
+        "INTERNET"
+      ],
+      "versionCode": 7
     },
     "web": {
       "bundler": "metro",
       "output": "single",
       "favicon": "./assets/images/favicon.png",
-      "permissions": ["INTERNET"]
+      "permissions": [
+        "INTERNET"
+      ]
     },
     "plugins": [
       "expo-router",
@@ -42,7 +39,7 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 500,
           "resizeMode": "contain",
-          "backgroundColor": "white"
+          "backgroundColor": "#ffffff"
         }
       ],
       [
@@ -66,11 +63,6 @@
     },
     "assetBundlePatterns": [
       "**/*"
-    ],
-    "doctor": {
-      "reactNativeDirectoryCheck": {
-        "listUnknownPackages": false
-      }
-    }
+    ]
   }
 }
