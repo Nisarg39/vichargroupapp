@@ -422,7 +422,9 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
         const numericUserAnswer = parseFloat(userAnswer.numericAnswer);
         
         if (!isNaN(numericUserAnswer)) {
-          return question.answerNumeric === numericUserAnswer;
+          // Use a small epsilon for floating point comparison to handle precision issues
+          const epsilon = 1e-10;
+          return Math.abs(question.answerNumeric - numericUserAnswer) < epsilon;
         }
         return false;
       }
@@ -1325,8 +1327,13 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
                         
                         return (
                           <View key={question._id} className="mb-4 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                            <View className="flex-row justify-between items-start">
-                              <View className="flex-row items-start flex-1 mr-2">
+                            <View className="mb-3">
+                              <View className={`self-start px-3 py-1 rounded-full mb-2 ${isCorrect ? 'bg-green-100' : 'bg-red-100'}`}>
+                                <Text className={`font-medium ${isCorrect ? 'text-green-800' : 'text-red-800'}`}>
+                                  {isCorrect ? 'Correct' : 'Incorrect'}
+                                </Text>
+                              </View>
+                              <View className="flex-row items-start">
                                 <Text className="text-base font-medium text-gray-800 mr-1">
                                   {question.serialNumber}.
                                 </Text>
@@ -1337,11 +1344,6 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
                                     fontWeight: '500' 
                                   })}
                                 </View>
-                              </View>
-                              <View className={`px-3 py-1 rounded-full ${isCorrect ? 'bg-green-100' : 'bg-red-100'}`}>
-                                <Text className={`font-medium ${isCorrect ? 'text-green-800' : 'text-red-800'}`}>
-                                  {isCorrect ? 'Correct' : 'Incorrect'}
-                                </Text>
                               </View>
                             </View>
                             
@@ -1386,7 +1388,7 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
                                   </Text>
                                 </TouchableOpacity>
                                 {showSolution[question._id] && (
-                                  <TouchableOpacity onPress={() => setFullScreenImage(question.solutionImage)}>
+                                  <TouchableOpacity onPress={() => setFullScreenImage(question.solutionImage || null)}>
                                     <Image
                                       source={{ uri: question.solutionImage }}
                                       className="w-full h-56 rounded-lg"

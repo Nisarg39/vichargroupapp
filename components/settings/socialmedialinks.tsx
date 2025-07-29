@@ -1,4 +1,4 @@
-import { TouchableOpacity, View, Dimensions, Text, Image } from "react-native";
+import { TouchableOpacity, View, Dimensions, Text, Image, Linking } from "react-native";
 import { useNavigation } from '@react-navigation/native';
 
 export default function SocialMediaLinks() {
@@ -16,7 +16,7 @@ export default function SocialMediaLinks() {
                     padding: containerPadding,
                     width: Math.min(screenWidth * 0.9, 400),
                 }}>
-                <TouchableOpacity className='p-2 active:scale-95'>
+                <TouchableOpacity className='p-2 active:scale-95' onPress={() => Linking.openURL('https://www.facebook.com/61577304190766/about/?_rdr')}>
                     <Image 
                         source={{ uri: 'https://cdn-icons-png.flaticon.com/128/168/168754.png' }}
                         style={{
@@ -26,7 +26,7 @@ export default function SocialMediaLinks() {
                         }}
                     />
                 </TouchableOpacity>
-                <TouchableOpacity className='p-2 active:scale-95'>
+                <TouchableOpacity className='p-2 active:scale-95' onPress={() => Linking.openURL('https://www.instagram.com/vichar_group/')}>
                     <Image 
                         source={{ uri: 'https://cdn-icons-png.flaticon.com/128/2112/2112753.png' }}
                         style={{
@@ -36,19 +36,9 @@ export default function SocialMediaLinks() {
                         }}
                     />
                 </TouchableOpacity>
-                <TouchableOpacity className='p-2 active:scale-95'>
+                <TouchableOpacity className='p-2 active:scale-95' onPress={() => Linking.openURL('https://www.vichargroup.com/')}>
                     <Image 
-                        source={{ uri: 'https://cdn-icons-png.flaticon.com/128/168/168813.png' }}
-                        style={{
-                            width: iconSize,
-                            height: iconSize,
-                            opacity: 0.9
-                        }}
-                    />
-                </TouchableOpacity>
-                <TouchableOpacity className='p-2 active:scale-95'>
-                    <Image 
-                        source={{ uri: 'https://cdn-icons-png.flaticon.com/256/1927/1927746.png' }}
+                        source={{ uri: 'https://cdn-icons-png.flaticon.com/128/16000/16000193.png' }}
                         style={{
                             width: iconSize,
                             height: iconSize,

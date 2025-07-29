@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { View, Text, ScrollView, Image, TouchableOpacity, TextInput } from 'react-native'
+import { View, Text, ScrollView, Image, TouchableOpacity, TextInput, Modal, Pressable } from 'react-native'
 import { Ionicons } from '@expo/vector-icons';
 import { renderLatex } from '@/utils/textUtils';
 import { WebView } from 'react-native-webview';
@@ -24,7 +24,7 @@ interface DppQuestion {
   answerObjective?: string;
   answerMultiple?: string[];
   answerNumeric?: number;
-  solutionPdf?: string;
+  solutionImage?: string;
 }
 
 interface Dpp {
@@ -61,6 +61,8 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
     const [questionTimes, setQuestionTimes] = useState<{[questionId: string]: number}>({});
     const [timerInterval, setTimerInterval] = useState<number | null>(null);
     const [webViewHeights, setWebViewHeights] = useState<{[questionId: string]: number}>({});
+    const [showSolution, setShowSolution] = useState<{ [questionId: string]: boolean }>({});
+    const [fullScreenImage, setFullScreenImage] = useState<string | null>(null);
 
     // Add this helper function to format time
     const formatTime = (timeInSeconds: number): string => {
@@ -420,7 +422,9 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
         const numericUserAnswer = parseFloat(userAnswer.numericAnswer);
         
         if (!isNaN(numericUserAnswer)) {
-          return question.answerNumeric === numericUserAnswer;
+          // Use a small epsilon for floating point comparison to handle precision issues
+          const epsilon = 1e-10;
+          return Math.abs(question.answerNumeric - numericUserAnswer) < epsilon;
         }
         return false;
       }
@@ -1070,6 +1074,13 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
       return <Text className="text-gray-500 italic">No answer available</Text>;
     };
 
+    const handleToggleSolution = (questionId: string) => {
+      setShowSolution(prev => ({
+        ...prev,
+        [questionId]: !prev[questionId]
+      }));
+    };
+
     const handleBackFromTest = () => {
         // If results are already shown, directly go back to DPP list
         if (showResults) {
@@ -1364,10 +1375,58 @@ const DPPs: React.FC<DPPsProps> = ({ dpps }) => {
                               )}
                               {displayDynamicCorrectAnswer(question)}
                             </View>
+
+                            {/* Show solution image if present */}
+                            {question.solutionImage ? (
+                              <View className="mt-3">
+                                <TouchableOpacity
+                                  onPress={() => handleToggleSolution(question._id)}
+                                  className="bg-blue-100 px-4 py-2 rounded-lg mb-2"
+                                >
+                                  <Text className="text-blue-700 font-medium">
+                                    {showSolution[question._id] ? 'Hide Solution' : 'Show Solution'}
+                                  </Text>
+                                </TouchableOpacity>
+                                {showSolution[question._id] && (
+                                  <TouchableOpacity onPress={() => setFullScreenImage(question.solutionImage || null)}>
+                                    <Image
+                                      source={{ uri: question.solutionImage }}
+                                      className="w-full h-56 rounded-lg"
+                                      resizeMode="contain"
+                                    />
+                                  </TouchableOpacity>
+                                )}
+                              </View>
+                            ) : null}
                           </View>
                         );
                       })}
                     </ScrollView>
+                    {/* Full Screen Modal for Solution Image */}
+                    <Modal
+                      visible={!!fullScreenImage}
+                      transparent={true}
+                      animationType="fade"
+                      onRequestClose={() => setFullScreenImage(null)}
+                    >
+                      <Pressable
+                        style={{
+                          flex: 1,
+                          backgroundColor: 'rgba(0,0,0,0.95)',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                        }}
+                        onPress={() => setFullScreenImage(null)}
+                      >
+                        {fullScreenImage && (
+                          <Image
+                            source={{ uri: fullScreenImage }}
+                            style={{ width: '100%', height: '80%', resizeMode: 'contain' }}
+                          />
+                        )}
+                        <Text style={{ color: '#fff', marginTop: 16, fontSize: 16 }}>Tap anywhere to close</Text>
+                      </Pressable>
+                    </Modal>
                   </View>        ) : (          // Questions for the selected DPP
                   <View>
                     {/* DPP Title */}

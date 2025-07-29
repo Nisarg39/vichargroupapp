@@ -171,13 +171,14 @@ function RootLayoutContent({ isSignedIn, setIsSignedIn, isLoading, setIsLoading,
         <Stack.Screen name="subjects" options={{ headerShown: false }} />
         <Stack.Screen name="lectures" options={{ headerShown: false }} />
         <Stack.Screen name='videoplayer' options={{ headerShown: false }} />
-        <Stack.Screen
+        <Stack.Screen name='notifications' options={{ headerShown: false }} />
+        {/* <Stack.Screen
           name="notifications"
           options={{
             presentation: "modal",
             animation: "slide_from_bottom",
           }}
-        />
+        /> */}
         <Stack.Screen name='teacherdetails' options={{ headerShown: false }}/>
       </Stack>
     </AuthContext.Provider>

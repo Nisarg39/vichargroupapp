@@ -182,14 +182,7 @@ export default function Layout() {
                 }} />
                 <Drawer.Screen name="profile" options={{
                     title: 'Profile',
-                    headerTitleStyle: { 
-                        color: '#FF9600', 
-                        fontSize: 20,
-                        fontWeight: '600',
-                        textShadowColor: 'rgba(0, 0, 0, 0.3)',
-                        textShadowOffset: { width: 1, height: 1 },
-                        textShadowRadius: 2
-                    }
+                    headerShown: false,
                 }} />
             </Drawer>
         </GestureHandlerRootView>

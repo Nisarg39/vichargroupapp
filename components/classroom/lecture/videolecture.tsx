@@ -295,7 +295,7 @@ const VideoLecture: React.FC<VideoLectureProps> = ({ lectures }) => {
                 const isPressed = pressedStates[lecture?._id] || false;
                 
                 return (
-                    <View key={lecture?._id} style={{ marginBottom: screenWidth * 0.04 }} className='w-full'>
+                    <View key={lecture?._id} style={{ marginBottom: screenWidth * 0.04, overflow: 'visible' }} className='w-full'>
                         <TouchableOpacity 
                             className="bg-humpback-500 rounded-[20px]"
                             style={{
@@ -304,6 +304,8 @@ const VideoLecture: React.FC<VideoLectureProps> = ({ lectures }) => {
                                 borderBottomWidth: isPressed ? 3 : 6,
                                 borderRightWidth: isPressed ? 3 : 6,
                                 transform: [{ translateY: isPressed ? 4 : 0 }],
+                                overflow: 'visible',
+                                minHeight: 'auto',
                             }}
                             activeOpacity={1}
                             pressRetentionOffset={{top: 10, left: 10, right: 10, bottom: 10}}
@@ -311,10 +313,10 @@ const VideoLecture: React.FC<VideoLectureProps> = ({ lectures }) => {
                             onPressIn={() => handlePressIn(lecture?._id)}
                             onPressOut={() => handlePressOut(lecture?._id)}
                         >
-                            <View style={{ flex: 1, overflow: 'visible' }}>
+                            <View style={{ overflow: 'visible', minHeight: 'auto' }}>
                                 {renderVideoThumbnail(lecture, thumbnailUrl)}
                                 
-                                <View className="p-4">
+                                <View className="p-4" style={{ overflow: 'visible' }}>
                                     <View className="flex-row items-center justify-between">
                                         <View className="flex-row items-center flex-1 mr-2">
                                             <Text className="text-white font-bold mr-2">
@@ -364,25 +366,33 @@ const VideoLecture: React.FC<VideoLectureProps> = ({ lectures }) => {
                                             paddingTop: 5,
                                             borderTopWidth: 1,
                                             borderTopColor: 'rgba(255,255,255,0.1)',
+                                            minHeight: 40,
+                                            overflow: 'visible',
                                         }}>
                                             <View style={{ 
                                                 flexDirection: 'row',
                                                 alignItems: 'flex-start',
                                                 width: '100%',
+                                                overflow: 'visible',
                                             }}>
                                                 <MaterialIcons 
                                                     name="description" 
                                                     size={16} 
                                                     color="rgba(255,255,255,0.8)" 
-                                                    style={{ marginRight: 8, marginTop: 2 }} 
+                                                    style={{ marginRight: 8, marginTop: 2, alignSelf: 'flex-start' }} 
                                                 />
                                                 
-                                                {/* Create a completely unconstrained container for LaTeX */}
-                                                <View style={{ width: screenWidth - 80 }}>
+                                                <View style={{ 
+                                                    flex: 1,
+                                                    minHeight: 35,
+                                                    overflow: 'visible',
+                                                }}>
                                                     {renderLatex(lecture.description, { 
                                                         fontSize: 14,
                                                         color: 'rgba(255,255,255,0.8)',
                                                         lineHeight: 20,
+                                                        minHeight: 35,
+                                                        width: '100%',
                                                     })}
                                                 </View>
                                             </View>

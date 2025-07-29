@@ -4,7 +4,7 @@ import CoursesList from '../../../components/products/coursesList'
 
 export default function Products() {
     return (
-        <View className="flex-1 bg-cardinal-50">
+        <View className="flex-1 bg-cardinal-50 pb-24">
             <ProductHeader />
             <CoursesList />
         </View>

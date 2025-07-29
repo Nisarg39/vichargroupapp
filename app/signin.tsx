@@ -1,4 +1,4 @@
-import { View, Text, Button, TextInput, Alert, TouchableOpacity, useWindowDimensions, Image } from "react-native"
+import { View, Text, Button, TextInput, Alert, TouchableOpacity, useWindowDimensions, Image, ScrollView } from "react-native"
 import { useContext, useState, } from "react"
 import { AuthContext } from "./_layout"
 import { useRouter } from "expo-router"
@@ -135,6 +135,9 @@ export default function SignInScreen() {
     const [showMandatoryDetails, setShowMandatoryDetails] = useState(false)
     const [name, setName] = useState('')
     const [email, setEmail] = useState('')
+    const [interestedStream, setInterestedStream] = useState('')
+    const [interestedClass, setInterestedClass] = useState('')
+    const [showClassDropdown, setShowClassDropdown] = useState(false)
     const [isSaving, setIsSaving] = useState(false)
     const [otpError, setOtpError] = useState('');
 
@@ -143,7 +146,7 @@ export default function SignInScreen() {
         return emailRegex.test(email);
     }
 
-    const isFormValid = name.trim() !== '' && isValidEmail(email);
+    const isFormValid = name.trim() !== '' && isValidEmail(email) && interestedStream !== '' && interestedClass !== '';
 
     const handleSignIn = () => {
         setIsSignedIn(true);
@@ -240,7 +243,9 @@ export default function SignInScreen() {
                 const response = await axios.post(`${process.env.EXPO_PUBLIC_API_URL}/api/app/signin/mandatoryDetails`, {
                     token: token,
                     name: name,
-                    email: email
+                    email: email,
+                    interestedStream: interestedStream,
+                    interestedClass: parseInt(interestedClass)
                 },{
                     headers: {
                         'Content-Type': 'multipart/form-data',
@@ -434,86 +439,205 @@ export default function SignInScreen() {
 
             {showMandatoryDetails && (
                 <View className="absolute inset-0 justify-center items-center bg-black/50">
-                    <View 
-                        className="bg-white p-4 sm:p-6 rounded-[20px] w-[95%] sm:w-[90%] max-w-[500px]"
-                        style={{
-                            shadowColor: "#000",
-                            shadowOffset: { width: 0, height: 20 },
-                            shadowOpacity: 0.3,
-                            shadowRadius: 20,
-                            elevation: 30,
-                            transform: [
-                                { perspective: 1000 },
-                                { rotateX: '2deg' },
-                            ]
-                        }}
-                    >
-                        <Text 
-                            className="text-xl sm:text-2xl font-bold text-center mb-3 sm:mb-4"
-                            style={{
-                                textShadowColor: 'rgba(0, 0, 0, 0.1)',
-                                textShadowOffset: { width: 1, height: 1 },
-                                textShadowRadius: 2,
-                            }}
-                        >
-                            Mandatory Details Required
-                        </Text>
-                        
-                        <View
+                    <View className="w-full max-w-[500px] px-4">
+                        <View 
+                            className="w-full px-2 sm:px-4"
                             style={{
                                 shadowColor: "#000",
-                                shadowOffset: { width: 0, height: 4 },
+                                shadowOffset: { width: 0, height: 10 },
                                 shadowOpacity: 0.1,
-                                shadowRadius: 8,
-                                elevation: 5,
+                                shadowRadius: 15,
+                                elevation: 10,
                             }}
                         >
-                            <TextInput
-                                className={`${width > 768 ? 'text-lg' : 'text-base'} bg-[#F0F0F0] rounded-2xl mb-3 sm:mb-4 p-3 sm:p-4 text-[#333]`}
-                                placeholder="Enter your name"
-                                placeholderTextColor="#666"
-                                value={name}
-                                onChangeText={setName}
-                            />
-                        </View>
-                        
-                        <View
-                            style={{
-                                shadowColor: "#000",
-                                shadowOffset: { width: 0, height: 4 },
-                                shadowOpacity: 0.1,
-                                shadowRadius: 8,
-                                elevation: 5,
-                            }}
-                        >
-                            <TextInput
-                                className={`${width > 768 ? 'text-lg' : 'text-base'} bg-[#F0F0F0] rounded-2xl mb-3 sm:mb-4 p-3 sm:p-4 text-[#333]`}
-                                placeholder="Enter your email"
-                                placeholderTextColor="#666"
-                                keyboardType="email-address"
-                                value={email}
-                                onChangeText={setEmail}
-                            />
-                        </View>
-                        
-                        <CustomButton 
-                            onPress={handleSaveDetails}
-                            disabled={!isFormValid || isSaving}
-                            bgColor={isFormValid ? 'bg-[#89e219]' : 'bg-[#E5E5E5]'}
-                            borderColor={isFormValid ? '#58cc02' : '#999'}
-                            text={`${width > 768 ? 'text-lg' : 'text-base'} ${isFormValid ? 'text-white' : 'text-[#666]'} text-center font-bold`}
-                        >
-                            <Text 
-                                className={`${width > 768 ? 'text-lg' : 'text-base'} ${isFormValid ? 'text-white' : 'text-[#666]'} text-center font-bold`}
+                            <View className="bg-white/95 backdrop-blur-xl rounded-3xl p-6 sm:p-8"
                                 style={{
-                                    textShadowColor: isFormValid ? 'rgba(0, 0, 0, 0.2)' : 'transparent',
-                                    textShadowOffset: { width: 0, height: 1 },
-                                    textShadowRadius: 2,
+                                    shadowColor: "#1a5fb4",
+                                    shadowOffset: { width: 0, height: 15 },
+                                    shadowOpacity: 0.4,
+                                    shadowRadius: 20,
+                                    elevation: 20,
                                 }}
                             >
-                                {isSaving ? 'Saving...' : 'Save Details'}
-                            </Text>
-                        </CustomButton>
+                                <Text 
+                                    className="text-2xl sm:text-3xl font-bold text-center mb-6 text-gray-800"
+                                    style={{
+                                        textShadowColor: 'rgba(0, 0, 0, 0.1)',
+                                        textShadowOffset: { width: 1, height: 1 },
+                                        textShadowRadius: 2,
+                                    }}
+                                >
+                                    Complete Your Profile
+                                </Text>
+
+                                {/* Name Input */}
+                                <View
+                                    style={{
+                                        shadowColor: "#000",
+                                        shadowOffset: { width: 0, height: 4 },
+                                        shadowOpacity: 0.1,
+                                        shadowRadius: 8,
+                                        elevation: 5,
+                                    }}
+                                >
+                                    <TextInput
+                                        className={`${width > 768 ? 'text-lg' : 'text-base'} bg-[#F0F0F0] rounded-2xl mb-4 p-4 text-[#333]`}
+                                        placeholder="Enter your full name"
+                                        placeholderTextColor="#666"
+                                        value={name}
+                                        onChangeText={setName}
+                                    />
+                                </View>
+
+                                {/* Email Input */}
+                                <View
+                                    style={{
+                                        shadowColor: "#000",
+                                        shadowOffset: { width: 0, height: 4 },
+                                        shadowOpacity: 0.1,
+                                        shadowRadius: 8,
+                                        elevation: 5,
+                                    }}
+                                >
+                                    <TextInput
+                                        className={`${width > 768 ? 'text-lg' : 'text-base'} bg-[#F0F0F0] rounded-2xl mb-4 p-4 text-[#333]`}
+                                        placeholder="Enter your email address"
+                                        placeholderTextColor="#666"
+                                        keyboardType="email-address"
+                                        value={email}
+                                        onChangeText={setEmail}
+                                    />
+                                </View>
+
+                                {/* Stream Selection */}
+                                <View className="mb-4">
+                                    <Text className={`${width > 768 ? 'text-lg' : 'text-base'} text-gray-700 font-medium mb-3`}>
+                                        Interested Stream:
+                                    </Text>
+                                    <View className="flex-row flex-wrap justify-between">
+                                        {["NEET", "JEE", "MHT-CET", "SSC", "HSC", "ICSE"].map((stream) => (
+                                            <TouchableOpacity
+                                                key={stream}
+                                                className={`flex-row items-center justify-center px-3 py-2 mb-2 rounded-lg border-2 ${
+                                                    interestedStream === stream 
+                                                        ? 'bg-[#1d77bc] border-[#1d77bc]' 
+                                                        : 'bg-gray-50 border-gray-300'
+                                                }`}
+                                                onPress={() => setInterestedStream(stream)}
+                                                style={{
+                                                    width: '48%',
+                                                    shadowColor: "#000",
+                                                    shadowOffset: { width: 0, height: 2 },
+                                                    shadowOpacity: 0.1,
+                                                    shadowRadius: 4,
+                                                    elevation: 2,
+                                                }}
+                                            >
+                                                <Text className={`${width > 768 ? 'text-base' : 'text-sm'} font-medium ${
+                                                    interestedStream === stream ? 'text-white' : 'text-[#333]'
+                                                }`}>
+                                                    {stream}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                </View>
+
+                                {/* Class Selection */}
+                                <View className="mb-6">
+                                    <Text className={`${width > 768 ? 'text-lg' : 'text-base'} text-gray-700 font-medium mb-3`}>
+                                        Interested Class:
+                                    </Text>
+                                    <View
+                                        style={{
+                                            shadowColor: "#000",
+                                            shadowOffset: { width: 0, height: 4 },
+                                            shadowOpacity: 0.1,
+                                            shadowRadius: 8,
+                                            elevation: 5,
+                                        }}
+                                    >
+                                        <TouchableOpacity
+                                            className="bg-[#F0F0F0] rounded-2xl p-4 flex-row justify-between items-center"
+                                            onPress={() => setShowClassDropdown(!showClassDropdown)}
+                                        >
+                                            <Text className={`${width > 768 ? 'text-lg' : 'text-base'} text-[#333]`}>
+                                                {interestedClass ? `Class ${interestedClass}` : 'Select Class'}
+                                            </Text>
+                                            <Text 
+                                                className={`${width > 768 ? 'text-lg' : 'text-base'} text-[#666]`}
+                                                style={{
+                                                    transform: [{ rotate: showClassDropdown ? '180deg' : '0deg' }]
+                                                }}
+                                            >
+                                                ▼
+                                            </Text>
+                                        </TouchableOpacity>
+                                        
+                                        {showClassDropdown && (
+                                            <View 
+                                                className="bg-white rounded-2xl mt-2 border border-gray-200"
+                                                style={{
+                                                    shadowColor: "#000",
+                                                    shadowOffset: { width: 0, height: 4 },
+                                                    shadowOpacity: 0.1,
+                                                    shadowRadius: 8,
+                                                    elevation: 5,
+                                                }}
+                                            >
+                                                {['12', '11', '10', '9', '8'].map((classOption, index) => (
+                                                    <TouchableOpacity
+                                                        key={classOption}
+                                                        className={`p-4 flex-row justify-between items-center ${
+                                                            index !== 4 ? 'border-b border-gray-100' : ''
+                                                        } ${interestedClass === classOption ? 'bg-blue-50' : ''}`}
+                                                        onPress={() => {
+                                                            setInterestedClass(classOption);
+                                                            setShowClassDropdown(false);
+                                                        }}
+                                                        style={{
+                                                            borderTopLeftRadius: index === 0 ? 16 : 0,
+                                                            borderTopRightRadius: index === 0 ? 16 : 0,
+                                                            borderBottomLeftRadius: index === 4 ? 16 : 0,
+                                                            borderBottomRightRadius: index === 4 ? 16 : 0,
+                                                        }}
+                                                    >
+                                                        <Text className={`${width > 768 ? 'text-lg' : 'text-base'} ${
+                                                            interestedClass === classOption ? 'text-[#1d77bc] font-medium' : 'text-[#333]'
+                                                        }`}>
+                                                            Class {classOption}
+                                                        </Text>
+                                                        {interestedClass === classOption && (
+                                                            <Text className="text-[#1d77bc]">✓</Text>
+                                                        )}
+                                                    </TouchableOpacity>
+                                                ))}
+                                            </View>
+                                        )}
+                                    </View>
+                                </View>
+
+                                {/* Save Button */}
+                                <CustomButton 
+                                    onPress={handleSaveDetails}
+                                    disabled={!isFormValid || isSaving}
+                                    bgColor={isFormValid ? 'bg-[#89e219]' : 'bg-[#E5E5E5]'}
+                                    borderColor={isFormValid ? '#58cc02' : '#999'}
+                                    text={`${width > 768 ? 'text-lg' : 'text-base'} ${isFormValid ? 'text-white' : 'text-[#666]'} text-center font-bold`}
+                                >
+                                    <Text 
+                                        className={`${width > 768 ? 'text-lg' : 'text-base'} ${isFormValid ? 'text-white' : 'text-[#666]'} text-center font-bold`}
+                                        style={{
+                                            textShadowColor: isFormValid ? 'rgba(0, 0, 0, 0.2)' : 'transparent',
+                                            textShadowOffset: { width: 0, height: 1 },
+                                            textShadowRadius: 2,
+                                        }}
+                                    >
+                                        {isSaving ? 'Saving...' : 'Complete Profile'}
+                                    </Text>
+                                </CustomButton>
+                            </View>
+                        </View>
                     </View>
                 </View>
             )}

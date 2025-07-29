@@ -87,12 +87,12 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'com.vichargroup'
+    namespace 'com.vichareducation.jee_neet'
     defaultConfig {
-        applicationId 'com.vichargroup'
+        applicationId "com.vichareducation.jee_neet"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 8
+        versionCode 14
         versionName "1.0.1"
     }
     signingConfigs {

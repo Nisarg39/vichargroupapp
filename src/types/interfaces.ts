@@ -3,6 +3,12 @@ export interface StudentData {
     email: string;
     phone: string;
     referralCode: string;
+    gender?: string;
+    dob?: string;
+    address?: string;
+    city?: string;
+    area?: string;
+    state?: string;
     purchases: Array<{
         product: {
             _id: string;

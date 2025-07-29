@@ -10,18 +10,21 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.vicharGroup"
+      "bundleIdentifier": "com.vichareducation.jee_neet"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.nisarg39.vicharGroup",
+      "package": "com.vichareducation.jee_neet",
       "permissions": [
         "INTERNET"
       ],
-      "versionCode": 8
+      "versionCode": 14,
+      "compileSdkVersion": 35,
+      "targetSdkVersion": 35,
+      "minSdkVersion": 23
     },
     "web": {
       "bundler": "metro",
@@ -51,7 +54,13 @@
           ]
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "react-native-edge-to-edge",
+        {
+          "edgeToEdgeEnabled": true
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

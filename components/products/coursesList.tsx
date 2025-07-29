@@ -14,6 +14,7 @@ interface Product {
     lessons: string
     students: string
     pageParameters: string
+    cart_url: string
 }
 
 interface Section {
@@ -45,7 +46,7 @@ export default function CoursesList() {
             }
           });
 
-        //   console.log(response.data.segments[0])
+        //   console.log(response.data.segments[0].products[1].cart_url)
 
         const formattedSections = response.data.segments.map((segment: any) => ({
             title: segment.name,
@@ -139,8 +140,12 @@ export default function CoursesList() {
                                         style: { transform: [{ translateY: 0 }], borderBottomWidth: 4, borderRightWidth: 4 }
                                     })
                                 }}
-                                // onPress={() => Linking.openURL(`${process.env.EXPO_PUBLIC_API_URL}/${item.pageParameters}`)}
-                                onPress={() => Linking.openURL(`${process.env.EXPO_PUBLIC_API_URL}`)}
+                                onPress={() => {
+                                    const url = item?.cart_url 
+                                        ? `${item.cart_url}`
+                                        : 'https://www.vichargroup.com';
+                                    Linking.openURL(url);
+                                }}
                             >
                                 <Text className="text-black font-bold text-xs px-4 py-2 text-center">Enroll Now</Text>
                             </TouchableOpacity>
